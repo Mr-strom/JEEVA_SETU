@@ -1,5 +1,3 @@
-// Blackspot module
-// Aggregated capacity intelligence dashboard; read-only indicators with pilot-period disclaimer
-export * from './blackspot.service';
-export * from './blackspot.routes';
-export * from './aggregator';
+// Blackspot intelligence module
+// Read-only aggregation of capacity signals, threshold suppression, and district dashboards
+export {};

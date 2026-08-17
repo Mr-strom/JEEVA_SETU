@@ -123,6 +123,8 @@ model User {
   escalations   Escalation[]   @relation("Escalations")
   auditEvents   AuditEvent[]
   playbookSteps PlaybookStep[] @relation("PlaybookSteps")
+  reportedCapacitySignals CapacitySignal[]
+  recordedDispositions   Disposition[]
 
   @@index([facilityId])
   @@index([role])
@@ -147,6 +149,7 @@ model Facility {
   receivedCases   ReferralCase[]   @relation("ReceivedCases")
   capacitySignals CapacitySignal[]
   gapEvents       GapEvent[]
+  routingSuggestions RoutingSuggestion[]
   blackspotIndicators BlackspotIndicator[]
 
   @@index([district])
@@ -253,6 +256,8 @@ model GapEvent {
   id                    String       @id @default(uuid())
   caseId                String
   case                  ReferralCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  facilityId            String?
+  facility              Facility?    @relation(fields: [facilityId], references: [id])
   phase                 GapPhase
   causeClass            GapCauseClass
   evidence              Json         // Array of triggering event IDs and details
@@ -261,9 +266,11 @@ model GapEvent {
   overrideUserId        String?
   overrideReason        String?
   overriddenAt          DateTime?
+  escalation            Escalation?
   createdAt             DateTime     @default(now())
 
   @@index([caseId])
+  @@index([facilityId])
   @@index([phase])
   @@index([causeClass])
   @@index([status])
@@ -318,11 +325,12 @@ model Playbook {
   nameKn      String
   triggerPhase GapPhase
   triggerCause GapCauseClass
-  steps       Json     // Array of { order, description, descriptionKn, assigneeRole, slaHours, requiredEvidence }
+  stepTemplates Json   // Array of { order, description, descriptionKn, assigneeRole, slaHours, requiredEvidence }
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   escalations Escalation[]
+  steps       PlaybookStep[]
 
   @@unique([triggerPhase, triggerCause]) // One playbook per phase+cause combination
 }

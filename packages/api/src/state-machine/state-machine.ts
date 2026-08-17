@@ -61,7 +61,7 @@ export interface TransitionResult {
 
 export type StateMachineDefinition = ReadonlyMap<CaseStatus, ReadonlyMap<CaseEventType, CaseStatus>>;
 
-export const VALID_TRANSITIONS: StateMachineDefinition = new Map([
+export const VALID_TRANSITIONS: StateMachineDefinition = new Map<CaseStatus, ReadonlyMap<CaseEventType, CaseStatus>>([
   [CaseStatus.DRAFT, new Map([[CaseEventType.SUBMITTED, CaseStatus.SUBMITTED]])],
   [CaseStatus.SUBMITTED, new Map([[CaseEventType.CREATED, CaseStatus.ACKNOWLEDGEMENT_PENDING]])],
   [

@@ -1,0 +1,1658 @@
+openapi: 3.1.0
+info:
+  title: JeevaSetu Karnataka API
+  version: 0.1.0
+  description: >-
+    A clinician-supervised, closed-loop maternal referral safety layer for
+    high-risk pregnancies in Karnataka. Tracks referrals from creation through
+    acknowledgement, acceptance, transport, arrival, clinical disposition,
+    discharge, follow-up, and closure with GapSense classification.
+servers:
+  - url: /api/v1
+    description: Current API v1 endpoint
+paths:
+  /me:
+    get:
+      tags:
+        - Auth
+      summary: Get current authenticated user profile
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: User profile information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /facilities:
+    get:
+      tags:
+        - Facilities
+      summary: List facilities with optional district/type filtering
+      operationId: listFacilities
+      parameters:
+        - name: district
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of facilities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Facility'
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: List users (Admin only)
+      operationId: listUsers
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Role'
+        - name: facilityId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /users/{id}:
+    patch:
+      tags:
+        - Users
+      summary: Update user details or active status (Admin only)
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                role:
+                  $ref: '#/components/schemas/Role'
+                facilityId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /referrals:
+    post:
+      tags:
+        - Referrals
+      summary: Create or draft a new maternal referral case
+      operationId: createReferral
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReferralInput'
+      responses:
+        '201':
+          description: Referral created or submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      tags:
+        - Referrals
+      summary: List referral cases scoped to user role and facility
+      operationId: listReferrals
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/CaseStatus'
+        - name: district
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of referral cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReferralCase'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+  /referrals/{id}:
+    get:
+      tags:
+        - Referrals
+      summary: Get referral case by ID
+      operationId: getReferralById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Referral case details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags:
+        - Referrals
+      summary: Update draft referral details
+      operationId: updateReferral
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReferralInput'
+      responses:
+        '200':
+          description: Referral updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /referrals/{id}/events:
+    post:
+      tags:
+        - Case Events
+      summary: Append a case event to the referral history
+      operationId: addCaseEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventType
+              properties:
+                eventType:
+                  type: string
+                payload:
+                  type: object
+      responses:
+        '201':
+          description: Case event recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseEvent'
+
+  /referrals/{id}/timeline:
+    get:
+      tags:
+        - Referrals
+      summary: Get complete immutable event timeline for a referral
+      operationId: getReferralTimeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Chronological list of case events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CaseEvent'
+
+  /referrals/{id}/accept:
+    post:
+      tags:
+        - Referrals
+      summary: Receiving facility accepts the referral
+      operationId: acceptReferral
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Referral accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+
+  /referrals/{id}/redirect:
+    post:
+      tags:
+        - Referrals
+      summary: Receiving facility redirects the referral to another facility
+      operationId: redirectReferral
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetFacilityId
+                - reasonCode
+              properties:
+                targetFacilityId:
+                  type: string
+                  format: uuid
+                reasonCode:
+                  $ref: '#/components/schemas/CapacityReasonCode'
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Referral redirected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+
+  /referrals/{id}/reject:
+    post:
+      tags:
+        - Referrals
+      summary: Receiving facility rejects the referral with capacity reason code
+      operationId: rejectReferral
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reasonCode
+              properties:
+                reasonCode:
+                  $ref: '#/components/schemas/CapacityReasonCode'
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Referral rejected, gap event classified and routing suggested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+
+  /referrals/{id}/arrival:
+    post:
+      tags:
+        - Transport
+      summary: Record patient arrival at the receiving facility
+      operationId: recordArrival
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                arrivedAt:
+                  type: string
+                  format: date-time
+                delayReason:
+                  type: string
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Patient arrival recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+
+  /referrals/{id}/disposition:
+    post:
+      tags:
+        - Dispositions
+      summary: Record clinical disposition at receiving facility (approved categories only)
+      operationId: recordDisposition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category
+              properties:
+                category:
+                  $ref: '#/components/schemas/DispositionCategory'
+                notes:
+                  type: string
+                transferredToFacilityId:
+                  type: string
+                  format: uuid
+                  nullable: true
+      responses:
+        '200':
+          description: Clinical disposition recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+
+  /referrals/{id}/discharge:
+    post:
+      tags:
+        - Dispositions
+      summary: Record patient discharge and create follow-up task
+      operationId: recordDischarge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - followUpDueDate
+              properties:
+                followUpDueDate:
+                  type: string
+                  format: date-time
+                dischargeSummary:
+                  type: string
+                followUpType:
+                  $ref: '#/components/schemas/FollowUpType'
+      responses:
+        '200':
+          description: Patient discharged and follow-up scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+
+  /referrals/{id}/close:
+    post:
+      tags:
+        - Referrals
+      summary: Close the referral case after completion or escalation resolution
+      operationId: closeReferral
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                closureReason:
+                  type: string
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Referral case closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+
+  /referrals/{id}/gap:
+    get:
+      tags:
+        - Gaps
+      summary: Get GapSense classification for referral
+      operationId: getReferralGap
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: GapSense classification details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GapEvent'
+
+  /referrals/{id}/gap/override:
+    post:
+      tags:
+        - Gaps
+      summary: Supervisor overrides GapSense classification (audited)
+      operationId: overrideReferralGap
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phase
+                - causeClass
+                - overrideReason
+              properties:
+                phase:
+                  $ref: '#/components/schemas/GapPhase'
+                causeClass:
+                  $ref: '#/components/schemas/GapCauseClass'
+                overrideReason:
+                  type: string
+      responses:
+        '200':
+          description: Gap classification overridden with audit trail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GapEvent'
+
+  /referrals/{id}/route-suggestions:
+    get:
+      tags:
+        - Routing
+      summary: Get deterministic alternate facility suggestions on rejection
+      operationId: getRouteSuggestions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ranked list of alternate facility suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoutingSuggestion'
+
+  /referrals/{id}/confirm-reroute:
+    post:
+      tags:
+        - Routing
+      summary: Human confirms re-route to selected alternate facility
+      operationId: confirmReroute
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetFacilityId
+              properties:
+                targetFacilityId:
+                  type: string
+                  format: uuid
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Case re-routed and moved to ACKNOWLEDGEMENT_PENDING at destination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCase'
+
+  /escalations:
+    get:
+      tags:
+        - Escalations
+      summary: List operational escalations scoped to supervisor district
+      operationId: listEscalations
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/EscalationStatus'
+        - name: district
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of escalations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Escalation'
+
+  /escalations/{id}:
+    get:
+      tags:
+        - Escalations
+      summary: Get escalation detail including playbook steps
+      operationId: getEscalationById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Escalation detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Escalation'
+
+  /escalations/{id}/acknowledge:
+    post:
+      tags:
+        - Escalations
+      summary: Supervisor acknowledges open escalation
+      operationId: acknowledgeEscalation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Escalation acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Escalation'
+
+  /escalations/{id}/playbook-step:
+    post:
+      tags:
+        - Escalations
+      summary: Execute or update a playbook step (requires human confirmation)
+      operationId: updatePlaybookStep
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stepIndex
+                - status
+              properties:
+                stepIndex:
+                  type: integer
+                status:
+                  $ref: '#/components/schemas/PlaybookStepStatus'
+                actionNote:
+                  type: string
+      responses:
+        '200':
+          description: Playbook step updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Escalation'
+
+  /escalations/{id}/resolve:
+    post:
+      tags:
+        - Escalations
+      summary: Resolve open escalation with resolution note
+      operationId: resolveEscalation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resolutionNote
+              properties:
+                resolutionNote:
+                  type: string
+      responses:
+        '200':
+          description: Escalation marked resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Escalation'
+
+  /playbooks:
+    get:
+      tags:
+        - Playbooks
+      summary: List all standard escalation action playbooks
+      operationId: listPlaybooks
+      responses:
+        '200':
+          description: List of escalation playbooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EscalationPlaybook'
+
+  /playbooks/{id}:
+    put:
+      tags:
+        - Playbooks
+      summary: Update escalation playbook template (Clinical Admin only)
+      operationId: updatePlaybook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationPlaybookInput'
+      responses:
+        '200':
+          description: Playbook updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationPlaybook'
+
+  /follow-ups:
+    get:
+      tags:
+        - Follow-ups
+      summary: List follow-up tasks scoped to frontline worker or facility
+      operationId: listFollowUps
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, OVERDUE, COMPLETED, ESCALATED]
+        - name: dueDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of follow-up tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FollowUpTask'
+
+  /follow-ups/{id}/complete:
+    post:
+      tags:
+        - Follow-ups
+      summary: Frontline worker records follow-up completion
+      operationId: completeFollowUp
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - outcome
+              properties:
+                outcome:
+                  $ref: '#/components/schemas/FollowUpOutcome'
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Follow-up completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowUpTask'
+
+  /follow-ups/{id}/escalate:
+    post:
+      tags:
+        - Follow-ups
+      summary: Escalate overdue or uncontactable follow-up to supervisor
+      operationId: escalateFollowUp
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Follow-up escalated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowUpTask'
+
+  /blackspot/summary:
+    get:
+      tags:
+        - Blackspot
+      summary: Read-only district referral blackspot intelligence summary
+      operationId: getBlackspotSummary
+      parameters:
+        - name: district
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Aggregated capacity and gap signals with pilot disclaimer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlackspotSummary'
+
+  /blackspot/facilities/{id}/signals:
+    get:
+      tags:
+        - Blackspot
+      summary: Capacity and gap signal breakdown for specific facility
+      operationId: getFacilityBlackspotSignals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Facility capacity signals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CapacitySignal'
+
+  /sync/batch:
+    post:
+      tags:
+        - Sync
+      summary: Offline outbox sync batch upload from frontline client
+      operationId: syncBatch
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mutations
+              properties:
+                clientSyncTimestamp:
+                  type: string
+                  format: date-time
+                mutations:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Batch mutation results and conflicting event statuses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appliedCount:
+                    type: integer
+                  conflicts:
+                    type: array
+                    items:
+                      type: object
+
+  /sync/changes:
+    get:
+      tags:
+        - Sync
+      summary: Fetch delta changes since last sync sequence/timestamp
+      operationId: getSyncChanges
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Delta updates for local IndexedDB store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  serverTimestamp:
+                    type: string
+                    format: date-time
+                  cases:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReferralCase'
+                  followUps:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FollowUpTask'
+
+  /sync/ack:
+    post:
+      tags:
+        - Sync
+      summary: Acknowledge receipt of server changes by frontline client
+      operationId: ackSync
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - acknowledgedTimestamp
+              properties:
+                acknowledgedTimestamp:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Sync acknowledged successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Unique UUID token per mutation request to ensure safe replay
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    UnauthorizedError:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ForbiddenError:
+      description: User lacks sufficient role or geographic scope for this operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFoundError:
+      description: Requested entity was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Invalid request payload or transition violation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    Role:
+      type: string
+      enum:
+        - FRONTLINE_WORKER
+        - SENDING_FACILITY
+        - RECEIVING_FACILITY
+        - CLINICIAN
+        - DISTRICT_SUPERVISOR
+        - ADMINISTRATOR
+        - CLINICAL_ADMINISTRATOR
+
+    CaseStatus:
+      type: string
+      enum:
+        - DRAFT
+        - SUBMITTED
+        - ACKNOWLEDGEMENT_PENDING
+        - ACCEPTED
+        - REDIRECTED
+        - REJECTED
+        - REDIRECT_SUGGESTED
+        - REROUTED
+        - IN_TRANSIT
+        - ARRIVED
+        - CLINICAL_DISPOSITION_RECORDED
+        - DISCHARGED
+        - FOLLOW_UP_DUE
+        - FOLLOW_UP_COMPLETED
+        - FOLLOW_UP_ESCALATED
+        - CLOSED
+
+    GapPhase:
+      type: string
+      enum:
+        - ACKNOWLEDGEMENT
+        - TRANSPORT
+        - CAPACITY
+        - DISPOSITION
+        - FOLLOW_UP
+
+    GapCauseClass:
+      type: string
+      enum:
+        - CAPACITY
+        - PROCESS
+        - COMMUNICATION
+        - UNDETERMINED
+
+    CapacityReasonCode:
+      type: string
+      enum:
+        - NO_BED
+        - SERVICE_UNAVAILABLE
+        - NO_CLINICIAN
+        - TRANSPORT_UNAVAILABLE
+        - OTHER
+
+    DispositionCategory:
+      type: string
+      enum:
+        - ADMITTED
+        - TRANSFERRED_OUT
+        - DISCHARGED_HOME
+        - EXPIRED
+        - LAMA
+
+    FollowUpType:
+      type: string
+      enum:
+        - HOME_VISIT
+        - PHONE_CHECK
+        - FACILITY_VISIT
+
+    FollowUpOutcome:
+      type: string
+      enum:
+        - COMPLETED
+        - PATIENT_NOT_FOUND
+        - PATIENT_REFUSED
+        - REFERRED_ONWARD
+
+    EscalationStatus:
+      type: string
+      enum:
+        - OPEN
+        - IN_PROGRESS
+        - RESOLVED
+
+    PlaybookStepStatus:
+      type: string
+      enum:
+        - PENDING
+        - IN_PROGRESS
+        - COMPLETED
+        - OVERDUE
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        facilityId:
+          type: string
+          format: uuid
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Facility:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        nameKn:
+          type: string
+        district:
+          type: string
+        districtKn:
+          type: string
+        type:
+          type: string
+        specialties:
+          type: array
+          items:
+            type: string
+        capacityBeds:
+          type: integer
+          nullable: true
+        isActive:
+          type: boolean
+
+    PatientReference:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        externalId:
+          type: string
+        nameHash:
+          type: string
+        age:
+          type: integer
+          nullable: true
+        gravida:
+          type: integer
+          nullable: true
+        parity:
+          type: integer
+          nullable: true
+        riskFlags:
+          type: array
+          items:
+            type: string
+
+    ReferralCase:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        caseId:
+          type: string
+        patientId:
+          type: string
+          format: uuid
+        patient:
+          $ref: '#/components/schemas/PatientReference'
+        sendingFacilityId:
+          type: string
+          format: uuid
+        receivingFacilityId:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        riskFlags:
+          type: array
+          items:
+            type: string
+        transportNeeded:
+          type: boolean
+        transportMode:
+          type: string
+          nullable: true
+        clinicalSummary:
+          type: string
+          nullable: true
+        acknowledgementDeadline:
+          type: string
+          format: date-time
+          nullable: true
+        dispositionDeadline:
+          type: string
+          format: date-time
+          nullable: true
+        followUpDueDate:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateReferralInput:
+      type: object
+      required:
+        - sendingFacilityId
+        - patientExternalId
+      properties:
+        isDraft:
+          type: boolean
+          default: false
+        sendingFacilityId:
+          type: string
+          format: uuid
+        receivingFacilityId:
+          type: string
+          format: uuid
+        patientExternalId:
+          type: string
+        patientAge:
+          type: integer
+        riskFlags:
+          type: array
+          items:
+            type: string
+        transportNeeded:
+          type: boolean
+        transportMode:
+          type: string
+        clinicalSummary:
+          type: string
+
+    UpdateReferralInput:
+      type: object
+      properties:
+        receivingFacilityId:
+          type: string
+          format: uuid
+        riskFlags:
+          type: array
+          items:
+            type: string
+        transportNeeded:
+          type: boolean
+        transportMode:
+          type: string
+        clinicalSummary:
+          type: string
+
+    CaseEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        caseId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        fromStatus:
+          $ref: '#/components/schemas/CaseStatus'
+        toStatus:
+          $ref: '#/components/schemas/CaseStatus'
+        actorUserId:
+          type: string
+          format: uuid
+        actorRole:
+          $ref: '#/components/schemas/Role'
+        payload:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    GapEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        caseId:
+          type: string
+          format: uuid
+        phase:
+          $ref: '#/components/schemas/GapPhase'
+        likelyCause:
+          $ref: '#/components/schemas/GapCauseClass'
+        evidence:
+          type: object
+        isOverridden:
+          type: boolean
+        overrideUserId:
+          type: string
+          format: uuid
+          nullable: true
+        overrideReason:
+          type: string
+          nullable: true
+        disclaimer:
+          type: string
+          default: 'Likely cause, pending supervisor review'
+        createdAt:
+          type: string
+          format: date-time
+
+    RoutingSuggestion:
+      type: object
+      properties:
+        facilityId:
+          type: string
+          format: uuid
+        facilityName:
+          type: string
+        facilityNameKn:
+          type: string
+        distanceKm:
+          type: number
+        specialtyMatch:
+          type: boolean
+        estimatedBedsAvailable:
+          type: integer
+        confidenceRank:
+          type: integer
+
+    Escalation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        caseId:
+          type: string
+          format: uuid
+        phase:
+          $ref: '#/components/schemas/GapPhase'
+        likelyCause:
+          $ref: '#/components/schemas/GapCauseClass'
+        status:
+          $ref: '#/components/schemas/EscalationStatus'
+        assignedSupervisorId:
+          type: string
+          format: uuid
+          nullable: true
+        playbookSteps:
+          type: array
+          items:
+            type: object
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    EscalationPlaybook:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        gapPhase:
+          $ref: '#/components/schemas/GapPhase'
+        gapCauseClass:
+          $ref: '#/components/schemas/GapCauseClass'
+        title:
+          type: string
+        titleKn:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        active:
+          type: boolean
+
+    EscalationPlaybookInput:
+      type: object
+      properties:
+        title:
+          type: string
+        titleKn:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        active:
+          type: boolean
+
+    FollowUpTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        caseId:
+          type: string
+          format: uuid
+        assignedWorkerId:
+          type: string
+          format: uuid
+        dueDate:
+          type: string
+          format: date-time
+        type:
+          $ref: '#/components/schemas/FollowUpType'
+        outcome:
+          $ref: '#/components/schemas/FollowUpOutcome'
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CapacitySignal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        facilityId:
+          type: string
+          format: uuid
+        reasonCode:
+          $ref: '#/components/schemas/CapacityReasonCode'
+        signalCount:
+          type: integer
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+
+    BlackspotSummary:
+      type: object
+      properties:
+        district:
+          type: string
+        pilotDisclaimer:
+          type: string
+          default: 'Pilot-period, synthetic-data only. Aggregated output suppressed below minimum case threshold.'
+        minimumThresholdMet:
+          type: boolean
+        blackspots:
+          type: array
+          items:
+            type: object
+            properties:
+              facilityId:
+                type: string
+                format: uuid
+              facilityName:
+                type: string
+              topFailurePhase:
+                $ref: '#/components/schemas/GapPhase'
+              topCauseClass:
+                $ref: '#/components/schemas/GapCauseClass'
+              rejectionRate:
+                type: number
+              totalReferrals:
+                type: integer
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - requestId
+        - timestamp
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error message
+        fieldErrors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+        requestId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time

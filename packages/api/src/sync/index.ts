@@ -1,5 +1,3 @@
 // Sync module
-// Offline-first synchronization: batch mutations, changes feed, idempotency key replay
-export * from './sync.service';
-export * from './sync.routes';
-export * from './outbox';
+// Offline outbox batch upload, change feed delta retrieval, and ack protocol
+export {};

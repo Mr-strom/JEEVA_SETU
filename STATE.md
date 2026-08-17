@@ -1,0 +1,55 @@
+---
+product: JeevaSetu Karnataka (v2 with GapSense)
+current_phase: "Phase 5A — Auth, Roles, Facilities & Synthetic Seed Data"
+completed:
+  - "FR-01: Authentication, JWT management, and server-side RBAC middleware (authenticate, authorizeRoles, enforceFacilityScope, enforceDistrictScope, enforceSenderFieldProtection)"
+  - "GET /api/v1/me endpoint with authenticated profile and assigned facility details"
+  - "GET /api/v1/facilities endpoint with district/type filtering"
+  - "GET /api/v1/users and PATCH /api/v1/users/:id endpoints (Admin only, user deactivation and role management)"
+  - "Security audit event logging for login success/failure and unauthorized scope access in AuditEvent table"
+  - "Synthetic seed script (prisma/seed.ts) with 8 facilities across 3 Karnataka districts (Bangalore Urban, Mysuru, Kalaburagi), 7 role users (one per role), playbooks, and configuration"
+  - "Comprehensive API test suite in packages/api/src/auth/__tests__/auth-and-rbac.test.ts passing 66/66 unit/API tests"
+in_progress:
+  - "Phase 5A completed, ready for Phase 5B (Referral creation, queue, case detail, timeline)"
+blocker: "none"
+next_action: "Proceed to Phase 5B: Referral creation, queue, case detail, and timeline endpoints (FR-02, FR-03, FR-04, FR-12)"
+files_changed:
+  - "packages/api/src/shared/types.ts"
+  - "packages/api/src/shared/errors.ts"
+  - "packages/api/src/shared/constants.ts"
+  - "packages/api/src/shared/i18n.ts"
+  - "packages/api/src/shared/validation.ts"
+  - "packages/api/src/shared/db.ts"
+  - "packages/api/src/audit/audit.service.ts"
+  - "packages/api/src/audit/audit.middleware.ts"
+  - "packages/api/src/audit/index.ts"
+  - "packages/api/src/auth/auth.service.ts"
+  - "packages/api/src/auth/auth.middleware.ts"
+  - "packages/api/src/auth/auth.routes.ts"
+  - "packages/api/src/auth/index.ts"
+  - "packages/api/src/facilities/facilities.service.ts"
+  - "packages/api/src/facilities/facilities.routes.ts"
+  - "packages/api/src/facilities/index.ts"
+  - "packages/api/src/users/users.service.ts"
+  - "packages/api/src/users/users.routes.ts"
+  - "packages/api/src/users/index.ts"
+  - "packages/api/src/app.ts"
+  - "packages/api/src/index.ts"
+  - "packages/api/prisma/schema.prisma"
+  - "packages/api/prisma/seed.ts"
+  - "packages/api/vitest.config.ts"
+  - "packages/api/src/auth/__tests__/auth-and-rbac.test.ts"
+  - "STATE.md"
+important_decisions:
+  - "Enforced ROLES AND SCOPE server-side with strict preHandler hooks that reject unauthorized roles and log security audit events"
+  - "Protected sender-only fields from mutation by receiving facilities after referral submission"
+  - "Bilingual Kannada and English dictionary layer created in shared/i18n.ts"
+  - "All seed data is strictly synthetic with 0 real patient data"
+known_errors:
+  - "none"
+tests_run:
+  - "vitest run: 66/66 passing (56 state-machine tests + 10 auth, RBAC, scope, and security audit tests)"
+  - "npm run typecheck: 0 errors"
+scope_changes:
+  - "none"
+---
