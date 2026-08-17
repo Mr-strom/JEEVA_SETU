@@ -8,6 +8,10 @@ import { authRoutes } from './auth/auth.routes';
 import { facilitiesRoutes } from './facilities/facilities.routes';
 import { usersRoutes } from './users/users.routes';
 import { referralsRoutes } from './referrals/referrals.routes';
+import { dispositionsRoutes } from './dispositions/dispositions.routes';
+import { followUpsRoutes } from './follow-ups/follow-ups.routes';
+import { reportingRoutes } from './reporting/reporting.routes';
+import { auditRoutes } from './audit/audit.routes';
 import { authenticate, authorizeRoles } from './auth/auth.middleware';
 import { SUPERVISOR_ROLES } from './shared/constants';
 import { BLACKSPOT_CONFIG } from './shared/constants';
@@ -100,6 +104,18 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
 
       // Referrals routes (/api/v1/referrals, /api/v1/referrals/:id, /api/v1/referrals/:id/events, /api/v1/referrals/:id/timeline)
       v1.register(referralsRoutes);
+
+      // Dispositions & Discharge routes (/api/v1/referrals/:id/disposition, /api/v1/referrals/:id/discharge, /api/v1/referrals/:id/close)
+      v1.register(dispositionsRoutes);
+
+      // Follow-ups routes (/api/v1/follow-ups, /api/v1/follow-ups/:id/complete, /api/v1/follow-ups/:id/escalate)
+      v1.register(followUpsRoutes);
+
+      // Reporting routes (/api/v1/reporting/summary)
+      v1.register(reportingRoutes);
+
+      // Audit routes (/api/v1/audit/cases/:caseId, /api/v1/audit/events - Read-only)
+      v1.register(auditRoutes);
 
       // Supervisor Dashboard Endpoint Stub (/api/v1/blackspot/summary) for RBAC enforcement
       v1.get(

@@ -1,3 +1,4 @@
 // Reporting module
 // District analytics, referral aggregates, performance reports
-export {};
+export * from './reporting.service';
+export * from './reporting.routes';
