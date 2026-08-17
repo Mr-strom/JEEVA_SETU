@@ -1,0 +1,443 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  FRONTLINE_WORKER
+  SENDING_FACILITY
+  RECEIVING_FACILITY
+  CLINICIAN
+  DISTRICT_SUPERVISOR
+  ADMINISTRATOR
+  CLINICAL_ADMINISTRATOR
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ACKNOWLEDGEMENT_PENDING
+  ACCEPTED
+  REDIRECTED
+  REJECTED
+  REDIRECT_SUGGESTED
+  REROUTED
+  IN_TRANSIT
+  ARRIVED
+  CLINICAL_DISPOSITION_RECORDED
+  DISCHARGED
+  FOLLOW_UP_DUE
+  FOLLOW_UP_COMPLETED
+  FOLLOW_UP_ESCALATED
+  CLOSED
+}
+
+enum GapPhase {
+  ACKNOWLEDGEMENT
+  TRANSPORT
+  CAPACITY
+  DISPOSITION
+  FOLLOW_UP
+}
+
+enum GapCauseClass {
+  CAPACITY
+  PROCESS
+  COMMUNICATION
+  UNDETERMINED
+}
+
+enum CapacityReasonCode {
+  NO_BED
+  SERVICE_UNAVAILABLE
+  NO_CLINICIAN
+  TRANSPORT_UNAVAILABLE
+  OTHER
+}
+
+enum DispositionCategory {
+  ADMITTED
+  TRANSFERRED_OUT
+  DISCHARGED_HOME
+  EXPIRED
+  LAMA
+}
+
+enum FollowUpType {
+  HOME_VISIT
+  PHONE_CHECK
+  FACILITY_VISIT
+}
+
+enum FollowUpOutcome {
+  COMPLETED
+  PATIENT_NOT_FOUND
+  PATIENT_REFUSED
+  REFERRED_ONWARD
+}
+
+enum EscalationStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum PlaybookStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  TRANSITION
+  OVERRIDE
+  ESCALATION
+  RE_ROUTE
+  PLAYBOOK_STEP
+  GAP_CLASSIFIED
+  GAP_OVERRIDE
+  SYNC
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  role          Role
+  facilityId    String?
+  facility      Facility? @relation(fields: [facilityId], references: [id])
+  phone         String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdCases  ReferralCase[] @relation("CreatedCases")
+  assignedCases ReferralCase[] @relation("AssignedCases")
+  followUpTasks FollowUpTask[] @relation("FollowUpTasks")
+  escalations   Escalation[]   @relation("Escalations")
+  auditEvents   AuditEvent[]
+  playbookSteps PlaybookStep[] @relation("PlaybookSteps")
+
+  @@index([facilityId])
+  @@index([role])
+}
+
+model Facility {
+  id              String   @id @default(uuid())
+  name            String
+  nameKn          String   // Kannada name
+  district        String
+  districtKn      String
+  type            String   // PHC, CHC, DH, MC, etc.
+  specialties     String[] // e.g., ["OBSTETRICS", "NICU", "BLOOD_BANK"]
+  latitude        Float?
+  longitude       Float?
+  capacityBeds    Int?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  users           User[]
+  sentCases       ReferralCase[]   @relation("SentCases")
+  receivedCases   ReferralCase[]   @relation("ReceivedCases")
+  capacitySignals CapacitySignal[]
+  gapEvents       GapEvent[]
+  blackspotIndicators BlackspotIndicator[]
+
+  @@index([district])
+  @@index([isActive])
+}
+
+model PatientReference {
+  id              String   @id @default(uuid())
+  externalId      String   @unique // ORS patient ID or similar
+  nameHash        String   // Hashed name for privacy
+  age             Int?
+  gravida         Int?
+  parity          Int?
+  lmp             DateTime? // Last menstrual period
+  edd             DateTime? // Expected date of delivery
+  riskFlags       String[] // ["SEVERE_ANAEMIA", "PRE_ECLAMPSIA", ...] // requires clinical approval
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  cases           ReferralCase[]
+
+  @@index([externalId])
+}
+
+model ReferralCase {
+  id                    String      @id @default(uuid())
+  caseId                String      @unique // JS-YYYY-NNNNNN
+  patientId             String
+  patient               PatientReference @relation(fields: [patientId], references: [id])
+  sendingFacilityId     String
+  sendingFacility       Facility    @relation("SentCases", fields: [sendingFacilityId], references: [id])
+  receivingFacilityId   String?
+  receivingFacility     Facility?   @relation("ReceivedCases", fields: [receivingFacilityId], references: [id])
+  status                CaseStatus  @default(DRAFT)
+  riskFlags             String[]    // snapshot at creation
+  transportNeeded       Boolean     @default(false)
+  transportMode         String?     // AMBULANCE, 108, OWN, NOT_NEEDED
+  clinicalSummary       String?     @db.Text
+  createdById           String
+  createdBy             User        @relation("CreatedCases", fields: [createdById], references: [id])
+  assignedToId          String?
+  assignedTo            User?       @relation("AssignedCases", fields: [assignedToId], references: [id])
+  acknowledgementDeadline DateTime?
+  dispositionDeadline   DateTime?
+  followUpDueDate       DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  closedAt              DateTime?
+  events                CaseEvent[]
+  gapEvents             GapEvent[]
+  escalations           Escalation[]
+  followUpTasks         FollowUpTask[]
+  capacitySignals       CapacitySignal[]
+  routingSuggestions    RoutingSuggestion[]
+  dispositions          Disposition[]
+
+  @@index([caseId])
+  @@index([patientId])
+  @@index([sendingFacilityId])
+  @@index([receivingFacilityId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CaseEvent {
+  id              String      @id @default(uuid())
+  caseId          String
+  case            ReferralCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type            String      // CREATED, SUBMITTED, ACCEPTED, REJECTED, DISPATCHED, ARRIVED, etc.
+  fromStatus      CaseStatus?
+  toStatus        CaseStatus?
+  actorId         String
+  actorRole       Role
+  facilityId      String?
+  payload         Json        // Event-specific data (reason_code, delay_reason, etc.)
+  idempotencyKey  String?     @unique // For deduplication
+  requestId       String?     // For traceability
+  createdAt       DateTime    @default(now())
+
+  @@index([caseId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([idempotencyKey])
+}
+
+model CapacitySignal {
+  id              String            @id @default(uuid())
+  facilityId      String
+  facility        Facility          @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  caseId          String?
+  case            ReferralCase?     @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  reasonCode      CapacityReasonCode
+  detail          String?           // Additional context
+  reportedById    String
+  reportedBy      User              @relation(fields: [reportedById], references: [id])
+  createdAt       DateTime          @default(now())
+
+  @@index([facilityId])
+  @@index([caseId])
+  @@index([reasonCode])
+  @@index([createdAt])
+}
+
+model GapEvent {
+  id                    String       @id @default(uuid())
+  caseId                String
+  case                  ReferralCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  phase                 GapPhase
+  causeClass            GapCauseClass
+  evidence              Json         // Array of triggering event IDs and details
+  classificationLabel   String       @default("likely cause, pending supervisor review")
+  status                String       @default("PENDING_REVIEW") // PENDING_REVIEW, OVERRIDDEN, RESOLVED
+  overrideUserId        String?
+  overrideReason        String?
+  overriddenAt          DateTime?
+  createdAt             DateTime     @default(now())
+
+  @@index([caseId])
+  @@index([phase])
+  @@index([causeClass])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RoutingSuggestion {
+  id                    String       @id @default(uuid())
+  caseId                String
+  case                  ReferralCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  suggestedFacilityId   String
+  suggestedFacility     Facility     @relation(fields: [suggestedFacilityId], references: [id])
+  rank                  Int
+  score                 Float        // Composite ranking score
+  reasons               String[]     // Why this facility was suggested
+  status                String       @default("PENDING") // PENDING, CONFIRMED, DECLINED, EXPIRED
+  confirmedById         String?
+  confirmedAt           DateTime?
+  createdAt             DateTime     @default(now())
+
+  @@index([caseId])
+  @@index([status])
+  @@unique([caseId, suggestedFacilityId])
+}
+
+model Escalation {
+  id                    String         @id @default(uuid())
+  caseId                String
+  case                  ReferralCase   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  gapEventId            String         @unique
+  gapEvent              GapEvent       @relation(fields: [gapEventId], references: [id], onDelete: Cascade)
+  playbookId            String
+  playbook              Playbook       @relation(fields: [playbookId], references: [id])
+  status                EscalationStatus @default(OPEN)
+  assigneeId            String?
+  assignee              User?          @relation("Escalations", fields: [assigneeId], references: [id])
+  currentStepIndex      Int            @default(0)
+  startedAt             DateTime       @default(now())
+  resolvedAt            DateTime?
+  acknowledgedAt        DateTime?
+  steps                 PlaybookStep[]
+
+  @@index([caseId])
+  @@index([status])
+  @@index([assigneeId])
+  @@unique([caseId, gapEventId]) // Prevent duplicate escalations per case per gap event
+}
+
+model Playbook {
+  id          String   @id @default(uuid())
+  name        String
+  nameKn      String
+  triggerPhase GapPhase
+  triggerCause GapCauseClass
+  steps       Json     // Array of { order, description, descriptionKn, assigneeRole, slaHours, requiredEvidence }
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  escalations Escalation[]
+
+  @@unique([triggerPhase, triggerCause]) // One playbook per phase+cause combination
+}
+
+model PlaybookStep {
+  id              String           @id @default(uuid())
+  escalationId    String
+  escalation      Escalation       @relation(fields: [escalationId], references: [id], onDelete: Cascade)
+  playbookId      String
+  playbook        Playbook         @relation(fields: [playbookId], references: [id])
+  stepOrder       Int
+  description     String
+  descriptionKn   String
+  assigneeRole    Role
+  slaHours        Int
+  status          PlaybookStepStatus @default(PENDING)
+  completedById   String?
+  completedBy     User?            @relation("PlaybookSteps", fields: [completedById], references: [id])
+  completedAt     DateTime?
+  evidence        Json?
+  startedAt       DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@index([escalationId])
+  @@index([stepOrder])
+  @@unique([escalationId, stepOrder])
+}
+
+model Disposition {
+  id              String           @id @default(uuid())
+  caseId          String
+  case            ReferralCase     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  category        DispositionCategory
+  detail          String?          @db.Text // Ward, transfer destination, etc.
+  recordedById    String
+  recordedBy      User             @relation(fields: [recordedById], references: [id])
+  recordedAt      DateTime         @default(now())
+
+  @@index([caseId])
+  @@index([category])
+  @@unique([caseId]) // One disposition per case
+}
+
+model FollowUpTask {
+  id              String           @id @default(uuid())
+  caseId          String
+  case            ReferralCase     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type            FollowUpType
+  ownerId         String
+  owner           User             @relation("FollowUpTasks", fields: [ownerId], references: [id])
+  dueDate         DateTime
+  outcome         FollowUpOutcome?
+  completedAt     DateTime?
+  notes           String?          @db.Text
+  escalated       Boolean          @default(false)
+  escalatedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([caseId])
+  @@index([ownerId])
+  @@index([dueDate])
+  @@index([escalated])
+}
+
+model BlackspotIndicator {
+  id              String      @id @default(uuid())
+  facilityId      String
+  facility        Facility    @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  district        String
+  weekStart       DateTime    // ISO week start
+  totalReferrals  Int         @default(0)
+  rejectionRate   Float       @default(0)
+  avgAckTimeHours Float       @default(0)
+  capacityTrend   Json        // Weekly capacity signal counts by reason_code
+  gapPhaseCounts  Json        // Counts by GapPhase
+  blackspotScore  Float       @default(0)
+  caseCount       Int         @default(0)
+  isSuppressed    Boolean     @default(false) // Below MIN_THRESHOLD
+  createdAt       DateTime    @default(now())
+
+  @@index([district])
+  @@index([weekStart])
+  @@index([facilityId])
+  @@unique([facilityId, weekStart])
+}
+
+model AuditEvent {
+  id            String      @id @default(uuid())
+  actorId       String
+  actor         User        @relation(fields: [actorId], references: [id])
+  action        AuditAction
+  entity        String      // ReferralCase, GapEvent, Escalation, etc.
+  entityId      String
+  before        Json?
+  after         Json?
+  requestId     String?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime    @default(now())
+
+  @@index([actorId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Configuration {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  value           Json     // Typed config value
+  description     String
+  descriptionKn   String
+  category        String   // TIMERS, THRESHOLDS, REASON_CODES, PLAYBOOKS, MIN_THRESHOLD
+  requiresClinicalApproval Boolean @default(false)
+  updatedById     String?
+  updatedAt       DateTime @updatedAt
+}
