@@ -7,6 +7,7 @@ import { AppError } from './shared/errors';
 import { authRoutes } from './auth/auth.routes';
 import { facilitiesRoutes } from './facilities/facilities.routes';
 import { usersRoutes } from './users/users.routes';
+import { referralsRoutes } from './referrals/referrals.routes';
 import { authenticate, authorizeRoles } from './auth/auth.middleware';
 import { SUPERVISOR_ROLES } from './shared/constants';
 import { BLACKSPOT_CONFIG } from './shared/constants';
@@ -96,6 +97,9 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
 
       // Users routes (/api/v1/users, /api/v1/users/:id)
       v1.register(usersRoutes);
+
+      // Referrals routes (/api/v1/referrals, /api/v1/referrals/:id, /api/v1/referrals/:id/events, /api/v1/referrals/:id/timeline)
+      v1.register(referralsRoutes);
 
       // Supervisor Dashboard Endpoint Stub (/api/v1/blackspot/summary) for RBAC enforcement
       v1.get(
