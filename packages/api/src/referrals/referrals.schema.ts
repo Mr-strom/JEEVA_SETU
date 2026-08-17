@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { CaseStatus } from '@prisma/client';
+import { CaseStatus, CapacityReasonCode } from '@prisma/client';
 import { uuidSchema, paginationSchema } from '../shared/validation';
+import { DELAY_REASONS } from '../transport/transport.service';
 
 export const createReferralSchema = z
   .object({
@@ -49,6 +50,7 @@ export const listReferralsQuerySchema = paginationSchema.extend({
   district: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
+  delayedBeyondMinutes: z.coerce.number().int().positive().optional(),
 });
 
 export type ListReferralsQuery = z.infer<typeof listReferralsQuerySchema>;
@@ -59,3 +61,46 @@ export const addCaseEventSchema = z.object({
 });
 
 export type AddCaseEventInput = z.infer<typeof addCaseEventSchema>;
+
+export const acceptReferralSchema = z.object({
+  note: z.string().optional(),
+  receivingUnit: z.string().optional(),
+});
+
+export type AcceptReferralInput = z.infer<typeof acceptReferralSchema>;
+
+export const redirectReferralSchema = z.object({
+  targetFacilityId: uuidSchema,
+  reasonCode: z.nativeEnum(CapacityReasonCode, {
+    errorMap: () => ({ message: 'Capacity reason code is required and must be valid' }),
+  }),
+  note: z.string().optional().nullable(),
+});
+
+export type RedirectReferralInput = z.infer<typeof redirectReferralSchema>;
+
+export const rejectReferralSchema = z.object({
+  reasonCode: z.nativeEnum(CapacityReasonCode, {
+    errorMap: () => ({ message: 'Capacity reason code is required and must be valid' }),
+  }),
+  note: z.string().optional().nullable(),
+});
+
+export type RejectReferralInput = z.infer<typeof rejectReferralSchema>;
+
+export const recordArrivalSchema = z.object({
+  arrivedAt: z.string().datetime().optional().nullable(),
+  delayReason: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(
+      (val) => !val || DELAY_REASONS.includes(val as any) || val === 'OTHER',
+      {
+        message: 'Invalid delay reason value',
+      },
+    ),
+  note: z.string().optional().nullable(),
+});
+
+export type RecordArrivalInput = z.infer<typeof recordArrivalSchema>;

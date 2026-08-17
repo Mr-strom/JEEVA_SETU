@@ -7,6 +7,10 @@ import {
   updateReferralSchema,
   listReferralsQuerySchema,
   addCaseEventSchema,
+  acceptReferralSchema,
+  redirectReferralSchema,
+  rejectReferralSchema,
+  recordArrivalSchema,
 } from './referrals.schema';
 
 const referralParamsSchema = z.object({
@@ -89,6 +93,122 @@ export const referralsRoutes: FastifyPluginAsync = async (fastify: FastifyInstan
       const requestId = (req.headers['x-request-id'] as string) || (req.id as string);
 
       const updated = await referralsService.updateReferral(
+        params.id,
+        body,
+        req.user!,
+        idempotencyKey,
+        requestId,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+      return reply.status(200).send(updated);
+    },
+  );
+
+  /**
+   * POST /api/v1/referrals/:id/accept
+   * Receiving facility accepts the referral
+   */
+  fastify.post(
+    '/referrals/:id/accept',
+    {
+      preHandler: [authenticate],
+    },
+    async (req, reply) => {
+      const params = referralParamsSchema.parse(req.params);
+      const body = acceptReferralSchema.parse(req.body || {});
+      const idempotencyKey = (req.headers['idempotency-key'] as string) || null;
+      const requestId = (req.headers['x-request-id'] as string) || (req.id as string);
+
+      const updated = await referralsService.acceptReferral(
+        params.id,
+        body,
+        req.user!,
+        idempotencyKey,
+        requestId,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+      return reply.status(200).send(updated);
+    },
+  );
+
+  /**
+   * POST /api/v1/referrals/:id/redirect
+   * Receiving facility redirects the referral to another facility (requires capacity reason code)
+   */
+  fastify.post(
+    '/referrals/:id/redirect',
+    {
+      preHandler: [authenticate],
+    },
+    async (req, reply) => {
+      const params = referralParamsSchema.parse(req.params);
+      const body = redirectReferralSchema.parse(req.body);
+      const idempotencyKey = (req.headers['idempotency-key'] as string) || null;
+      const requestId = (req.headers['x-request-id'] as string) || (req.id as string);
+
+      const updated = await referralsService.redirectReferral(
+        params.id,
+        body,
+        req.user!,
+        idempotencyKey,
+        requestId,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+      return reply.status(200).send(updated);
+    },
+  );
+
+  /**
+   * POST /api/v1/referrals/:id/reject
+   * Receiving facility rejects the referral (requires capacity reason code)
+   */
+  fastify.post(
+    '/referrals/:id/reject',
+    {
+      preHandler: [authenticate],
+    },
+    async (req, reply) => {
+      const params = referralParamsSchema.parse(req.params);
+      const body = rejectReferralSchema.parse(req.body);
+      const idempotencyKey = (req.headers['idempotency-key'] as string) || null;
+      const requestId = (req.headers['x-request-id'] as string) || (req.id as string);
+
+      const updated = await referralsService.rejectReferral(
+        params.id,
+        body,
+        req.user!,
+        idempotencyKey,
+        requestId,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+      return reply.status(200).send(updated);
+    },
+  );
+
+  /**
+   * POST /api/v1/referrals/:id/arrival
+   * Record patient arrival at the receiving facility
+   */
+  fastify.post(
+    '/referrals/:id/arrival',
+    {
+      preHandler: [authenticate],
+    },
+    async (req, reply) => {
+      const params = referralParamsSchema.parse(req.params);
+      const body = recordArrivalSchema.parse(req.body || {});
+      const idempotencyKey = (req.headers['idempotency-key'] as string) || null;
+      const requestId = (req.headers['x-request-id'] as string) || (req.id as string);
+
+      const updated = await referralsService.recordArrival(
         params.id,
         body,
         req.user!,

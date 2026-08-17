@@ -1,3 +1,3 @@
 // Capacities module
 // Ingestion and tracking of facility capacity signals (NO_BED, SERVICE_UNAVAILABLE, etc.)
-export {};
+export * from './capacities.service';
