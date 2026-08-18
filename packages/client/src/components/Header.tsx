@@ -37,6 +37,7 @@ export const Header: React.FC = () => {
 
         <button
           onClick={toggleLanguage}
+          aria-label={language === 'kn' ? 'Switch to English' : 'ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಿ'}
           style={{
             background: 'var(--bg-app)',
             border: '1px solid var(--border-app)',
@@ -59,7 +60,17 @@ export const Header: React.FC = () => {
       {/* Persistent Sync Status Pill Banner */}
       <div
         className={`sync-banner sync-${syncStatus}`}
+        role="status"
+        aria-live="polite"
+        tabIndex={0}
+        aria-label={`Sync Status: ${t(`sync_${syncStatus}` as any) || syncStatus}`}
         onClick={triggerSync}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            triggerSync();
+          }
+        }}
         title="Tap to simulate sync state"
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

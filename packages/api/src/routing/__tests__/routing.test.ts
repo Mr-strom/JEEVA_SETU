@@ -164,6 +164,55 @@ describe('Phase 9A: Re-routing on Capacity Rejection & Suggestions Engine', () =
       expect(suggestions[0].suggestedFacilityId).toBe('facility-kr-hospital');
       expect(suggestions[0].reasons).toContain('Same District (Mysuru)');
     });
+
+    it('breaks ties deterministically when two candidates have identical score and profile', () => {
+      const tiedCandidates: FacilityCandidate[] = [
+        {
+          id: 'fac-bbb',
+          name: 'Beta Hospital',
+          district: 'Mysuru',
+          type: 'DH',
+          specialties: ['OBSTETRICS'],
+          capacityBeds: 150,
+          isActive: true,
+        },
+        {
+          id: 'fac-aaa',
+          name: 'Alpha Hospital',
+          district: 'Mysuru',
+          type: 'DH',
+          specialties: ['OBSTETRICS'],
+          capacityBeds: 150,
+          isActive: true,
+        },
+      ];
+
+      const run1 = calculateRoutingSuggestions({
+        caseId: 'case-tie-01',
+        sendingFacilityId: 'other-phc',
+        rejectingFacilityId: 'other-th',
+        district: 'Mysuru',
+        riskFlags: ['PRE_ECLAMPSIA'],
+        candidateFacilities: tiedCandidates,
+      });
+
+      // Reverse input order and run again
+      const run2 = calculateRoutingSuggestions({
+        caseId: 'case-tie-01',
+        sendingFacilityId: 'other-phc',
+        rejectingFacilityId: 'other-th',
+        district: 'Mysuru',
+        riskFlags: ['PRE_ECLAMPSIA'],
+        candidateFacilities: [...tiedCandidates].reverse(),
+      });
+
+      expect(run1[0].score).toBe(run1[1].score);
+      // Both runs produce strictly identical ordering: Alpha Hospital first, Beta Hospital second
+      expect(run1[0].suggestedFacilityId).toBe('fac-aaa');
+      expect(run1[1].suggestedFacilityId).toBe('fac-bbb');
+      expect(run2[0].suggestedFacilityId).toBe('fac-aaa');
+      expect(run2[1].suggestedFacilityId).toBe('fac-bbb');
+    });
   });
 
   describe('2. Endpoint GET /api/v1/referrals/:id/route-suggestions', () => {

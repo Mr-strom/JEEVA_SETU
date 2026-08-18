@@ -5,6 +5,7 @@ import { auditService } from '../audit/audit.service';
 import { calculateRoutingSuggestions } from './routing.engine';
 import { FacilityCandidate } from './routing.types';
 import { GAPSENSE_CONFIG } from '../shared/constants';
+import { NotFoundError, ForbiddenError } from '../shared/errors';
 
 export interface ConfirmRerouteInput {
   targetFacilityId: string;
@@ -161,7 +162,7 @@ export class RoutingService {
     });
 
     if (!targetCase) {
-      throw new Error(`ReferralCase '${caseId}' not found`);
+      throw new NotFoundError('ReferralCase', caseId);
     }
 
     // Role check: Only Sending Facility (originator), District Supervisor, or Administrator
@@ -170,7 +171,7 @@ export class RoutingService {
     const isAdmin = user.role === Role.ADMINISTRATOR || user.role === Role.CLINICAL_ADMINISTRATOR;
 
     if (!isSendingFacility && !isSupervisor && !isAdmin) {
-      throw new Error(`User in role '${user.role}' is not authorized to confirm re-routes for this case.`);
+      throw new ForbiddenError(`User in role '${user.role}' is not authorized to confirm re-routes for this case.`);
     }
 
     const targetFacility = await prisma.facility.findUnique({
@@ -178,7 +179,7 @@ export class RoutingService {
     });
 
     if (!targetFacility || !targetFacility.isActive) {
-      throw new Error(`Target facility '${input.targetFacilityId}' not found or inactive`);
+      throw new NotFoundError('Target facility', input.targetFacilityId);
     }
 
     const previousFacilityId = targetCase.receivingFacilityId;

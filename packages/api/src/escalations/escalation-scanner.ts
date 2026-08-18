@@ -202,6 +202,22 @@ export class EscalationScanner {
     facilityId?: string,
   ) {
     return prisma.$transaction(async (tx) => {
+      // Guard against cases resolved/accepted while worker scan is in-flight
+      const currentCase = await tx.referralCase.findUnique({
+        where: { id: caseId },
+        select: { status: true },
+      });
+
+      if (
+        currentCase &&
+        (currentCase.status === CaseStatus.ACCEPTED ||
+          currentCase.status === CaseStatus.CLOSED ||
+          currentCase.status === CaseStatus.CLINICAL_DISPOSITION_RECORDED ||
+          currentCase.status === CaseStatus.FOLLOW_UP_COMPLETED)
+      ) {
+        return null;
+      }
+
       // Find matching playbook
       let playbook = await tx.playbook.findFirst({
         where: {

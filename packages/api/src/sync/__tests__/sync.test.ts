@@ -262,4 +262,72 @@ describe('Phase 7: Offline Sync Layer End to End', () => {
       expect(ackBody.acknowledgedCursor).toBe(changesBody.nextCursor);
     });
   });
+
+  describe('5. Mixed-Mutation Batch Processing (Applied + Conflict + Rejected in Single Request)', () => {
+    it('correctly categorizes a batch containing a MIX of valid creation, conflicting task completion, and unsupported operation', async () => {
+      const workerToken = authService.generateToken(mockWorker);
+
+      // Seed already-completed task
+      const completedTaskId = 'task-mix-conflict-01';
+      existingFollowUps[completedTaskId] = {
+        id: completedTaskId,
+        caseId: 'case-mix-01',
+        outcome: FollowUpOutcome.COMPLETED,
+        completedAt: new Date(),
+        escalated: false,
+      };
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/sync/batch',
+        headers: { authorization: `Bearer ${workerToken}` },
+        payload: {
+          mutations: [
+            // Mutation 1: Valid referral creation -> applied
+            {
+              mutationId: 'mut-mix-01-valid',
+              operationType: 'CREATE_REFERRAL',
+              localCaseId: 'loc-mix-01',
+              payload: { patientExternalId: 'ORS-MIX-001', riskFlags: ['PRE_ECLAMPSIA'] },
+              clientTimestamp: new Date().toISOString(),
+              idempotencyKey: 'idem-mix-01',
+            },
+            // Mutation 2: Follow-up complete on already-completed task -> conflict
+            {
+              mutationId: 'mut-mix-02-conflict',
+              operationType: 'COMPLETE_FOLLOW_UP',
+              entityId: completedTaskId,
+              payload: { outcome: FollowUpOutcome.COMPLETED },
+              clientTimestamp: new Date().toISOString(),
+              idempotencyKey: 'idem-mix-02',
+            },
+            // Mutation 3: Non-existent case update -> rejected
+            {
+              mutationId: 'mut-mix-03-rejected',
+              operationType: 'UPDATE_REFERRAL',
+              localCaseId: 'loc-non-existent-999',
+              payload: { caseId: 'non-existent-case-id', clinicalSummary: 'Updated notes' },
+              clientTimestamp: new Date().toISOString(),
+              idempotencyKey: 'idem-mix-03',
+            },
+          ],
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.payload);
+
+      // Verify all 3 categories are populated in the single response
+      expect(body.applied.length).toBe(1);
+      expect(body.applied[0].mutationId).toBe('mut-mix-01-valid');
+
+      expect(body.conflicts.length).toBe(1);
+      expect(body.conflicts[0].mutationId).toBe('mut-mix-02-conflict');
+      expect(body.conflicts[0].status).toBe('conflict');
+
+      expect(body.rejected.length).toBe(1);
+      expect(body.rejected[0].mutationId).toBe('mut-mix-03-rejected');
+      expect(body.rejected[0].status).toBe('rejected');
+    });
+  });
 });

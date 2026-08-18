@@ -59,11 +59,18 @@ describe('State Machine - Invalid Transitions (at least 5)', () => {
     description: string;
   }> = [
     { from: CaseStatus.DRAFT, event: CaseEventType.ACCEPTED, role: Role.RECEIVING_FACILITY, description: 'DRAFT cannot go directly to ACCEPTED' },
+    { from: CaseStatus.DRAFT, event: CaseEventType.CLOSED, role: Role.ADMINISTRATOR, description: 'DRAFT cannot jump directly to CLOSED' },
     { from: CaseStatus.SUBMITTED, event: CaseEventType.DISPATCHED, role: Role.SENDING_FACILITY, description: 'SUBMITTED cannot go to DISPATCHED' },
+    { from: CaseStatus.SUBMITTED, event: CaseEventType.ARRIVED, role: Role.RECEIVING_FACILITY, description: 'SUBMITTED cannot skip acknowledgement/transit and jump directly to ARRIVED' },
     { from: CaseStatus.ACCEPTED, event: CaseEventType.REJECTED, role: Role.RECEIVING_FACILITY, description: 'ACCEPTED cannot be REJECTED' },
+    { from: CaseStatus.ACCEPTED, event: CaseEventType.CLOSED, role: Role.CLINICIAN, description: 'ACCEPTED cannot skip transit/care and jump directly to CLOSED' },
     { from: CaseStatus.IN_TRANSIT, event: CaseEventType.CLINICAL_DISPOSITION_RECORDED, role: Role.CLINICIAN, description: 'IN_TRANSIT cannot record disposition' },
     { from: CaseStatus.DISCHARGED, event: CaseEventType.ACCEPTED, role: Role.RECEIVING_FACILITY, description: 'DISCHARGED cannot go back to ACCEPTED' },
     { from: CaseStatus.CLOSED, event: CaseEventType.REOPENED, role: Role.ADMINISTRATOR, description: 'CLOSED is terminal, no REOPENED event exists' },
+    { from: CaseStatus.CLOSED, event: CaseEventType.SUBMITTED, role: Role.FRONTLINE_WORKER, description: 'CLOSED case cannot be submitted again' },
+    { from: CaseStatus.CLOSED, event: CaseEventType.ACCEPTED, role: Role.RECEIVING_FACILITY, description: 'CLOSED case cannot be accepted' },
+    { from: CaseStatus.CLOSED, event: CaseEventType.ARRIVED, role: Role.RECEIVING_FACILITY, description: 'CLOSED case cannot receive arrival event' },
+    { from: CaseStatus.CLOSED, event: CaseEventType.FOLLOW_UP_COMPLETED, role: Role.FRONTLINE_WORKER, description: 'CLOSED case cannot mutate follow-up' },
     { from: CaseStatus.ACKNOWLEDGEMENT_PENDING, event: CaseEventType.DISPATCHED, role: Role.SENDING_FACILITY, description: 'ACKNOWLEDGEMENT_PENDING cannot dispatch' },
     { from: CaseStatus.FOLLOW_UP_DUE, event: CaseEventType.DISPATCHED, role: Role.SENDING_FACILITY, description: 'FOLLOW_UP_DUE cannot dispatch' },
   ];

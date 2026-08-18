@@ -668,3 +668,23 @@ textarea.form-control {
     padding: 16px;
   }
 }
+
+/* Accessibility: WCAG Compliant Visible Focus States */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+.nav-item:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+}
+
+/* Kannada Typography & Script Rendering */
+[lang="kn"],
+html[lang="kn"] body {
+  font-family: 'Noto Sans Kannada', 'Tunga', 'Kedage', 'Malige', var(--font-sans);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}

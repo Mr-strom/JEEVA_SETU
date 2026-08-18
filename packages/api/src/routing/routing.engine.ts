@@ -105,8 +105,16 @@ export function calculateRoutingSuggestions(request: RoutingRequest): RoutingSug
     };
   });
 
-  // 4. Sort descending by score and assign ranks
-  scored.sort((a, b) => b.score - a.score);
+  // 4. Sort descending by score; break ties deterministically by facility name and ID
+  scored.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return (
+      (a.suggestedFacility.name || '').localeCompare(b.suggestedFacility.name || '') ||
+      a.suggestedFacilityId.localeCompare(b.suggestedFacilityId)
+    );
+  });
 
   return scored.map((item, index) => ({
     ...item,

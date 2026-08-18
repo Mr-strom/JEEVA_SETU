@@ -129,8 +129,9 @@ export const NewReferralPage: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">{t('patientIdLabel')}</label>
+          <label htmlFor="patientExternalId" className="form-label">{t('patientIdLabel')}</label>
           <input
+            id="patientExternalId"
             type="text"
             className="form-input"
             placeholder={t('patientIdPlaceholder')}
@@ -140,8 +141,9 @@ export const NewReferralPage: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">{t('patientNameLabel')}</label>
+          <label htmlFor="patientName" className="form-label">{t('patientNameLabel')}</label>
           <input
+            id="patientName"
             type="text"
             className="form-input"
             value={patientName}
@@ -151,8 +153,9 @@ export const NewReferralPage: React.FC = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
           <div className="form-group">
-            <label className="form-label">{t('patientAgeLabel')}</label>
+            <label htmlFor="patientAge" className="form-label">{t('patientAgeLabel')}</label>
             <input
+              id="patientAge"
               type="number"
               className="form-input"
               value={patientAge}
@@ -160,8 +163,9 @@ export const NewReferralPage: React.FC = () => {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">{t('gravidaLabel')}</label>
+            <label htmlFor="gravida" className="form-label">{t('gravidaLabel')}</label>
             <input
+              id="gravida"
               type="number"
               className="form-input"
               value={gravida}
@@ -169,8 +173,9 @@ export const NewReferralPage: React.FC = () => {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">{t('parityLabel')}</label>
+            <label htmlFor="parity" className="form-label">{t('parityLabel')}</label>
             <input
+              id="parity"
               type="number"
               className="form-input"
               value={parity}
@@ -181,8 +186,9 @@ export const NewReferralPage: React.FC = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div className="form-group">
-            <label className="form-label">{t('lmpLabel')}</label>
+            <label htmlFor="lmp" className="form-label">{t('lmpLabel')}</label>
             <input
+              id="lmp"
               type="date"
               className="form-input"
               value={lmp}
@@ -190,8 +196,9 @@ export const NewReferralPage: React.FC = () => {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">{t('eddLabel')}</label>
+            <label htmlFor="edd" className="form-label">{t('eddLabel')}</label>
             <input
+              id="edd"
               type="date"
               className="form-input"
               value={edd}
@@ -208,7 +215,7 @@ export const NewReferralPage: React.FC = () => {
           <span>{t('sectionRisks')}</span>
         </div>
 
-        <div className="checkbox-grid">
+        <div className="checkbox-grid" role="group" aria-label={t('sectionRisks')}>
           {[
             { id: 'SEVERE_ANAEMIA', label: t('risk_SEVERE_ANAEMIA') },
             { id: 'PRE_ECLAMPSIA', label: t('risk_PRE_ECLAMPSIA') },
@@ -223,13 +230,22 @@ export const NewReferralPage: React.FC = () => {
             return (
               <label
                 key={item.id}
+                htmlFor={`risk-${item.id}`}
                 className={`checkbox-card ${isSelected ? 'selected' : ''}`}
-                onClick={() => toggleRiskFlag(item.id)}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    toggleRiskFlag(item.id);
+                  }
+                }}
               >
                 <input
+                  id={`risk-${item.id}`}
                   type="checkbox"
                   checked={isSelected}
-                  onChange={() => {}}
+                  onChange={() => toggleRiskFlag(item.id)}
+                  aria-checked={isSelected}
                 />
                 <span className="checkbox-label">{item.label}</span>
               </label>
@@ -246,8 +262,9 @@ export const NewReferralPage: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">{t('receivingHospitalLabel')}</label>
+          <label htmlFor="receivingFacilityId" className="form-label">{t('receivingHospitalLabel')}</label>
           <select
+            id="receivingFacilityId"
             className="form-select"
             value={receivingFacilityId}
             onChange={(e) => setReceivingFacilityId(e.target.value)}
@@ -265,11 +282,23 @@ export const NewReferralPage: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="checkbox-card selected" onClick={() => setTransportNeeded(!transportNeeded)}>
+          <label
+            htmlFor="transportNeeded"
+            className={`checkbox-card ${transportNeeded ? 'selected' : ''}`}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setTransportNeeded(!transportNeeded);
+              }
+            }}
+          >
             <input
+              id="transportNeeded"
               type="checkbox"
               checked={transportNeeded}
-              onChange={() => {}}
+              onChange={() => setTransportNeeded(!transportNeeded)}
+              aria-checked={transportNeeded}
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Truck size={18} style={{ color: 'var(--karnataka-gold)' }} />
@@ -279,8 +308,9 @@ export const NewReferralPage: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">{t('clinicalSummaryLabel')}</label>
+          <label htmlFor="clinicalSummary" className="form-label">{t('clinicalSummaryLabel')}</label>
           <textarea
+            id="clinicalSummary"
             className="form-textarea"
             placeholder={t('clinicalSummaryPlaceholder')}
             value={clinicalSummary}

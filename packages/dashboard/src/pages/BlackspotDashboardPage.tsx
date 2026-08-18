@@ -181,6 +181,8 @@ export const BlackspotDashboardPage: React.FC = () => {
             <span>District:</span>
           </div>
           <select
+            id="blackspot-district-filter"
+            aria-label="Filter blackspots by district"
             className="form-select"
             style={{ width: 'auto', padding: '6px 12px', fontSize: '13px' }}
             value={districtFilter}
@@ -193,11 +195,13 @@ export const BlackspotDashboardPage: React.FC = () => {
           </select>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} role="group" aria-label="Filter window duration">
           <span style={{ fontSize: '13px', color: 'var(--text-sub)' }}>{t('filterRollingDays')}</span>
           {[7, 30, 90].map((days) => (
             <button
               key={days}
+              aria-label={`Filter data for past ${days} days`}
+              aria-pressed={rollingDays === days}
               onClick={() => setRollingDays(days)}
               style={{
                 backgroundColor: rollingDays === days ? 'var(--border-active)' : 'var(--bg-surface)',
@@ -254,16 +258,19 @@ export const BlackspotDashboardPage: React.FC = () => {
       {/* Blackspots Heatmap Table */}
       <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-app)', borderRadius: '12px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+          <caption style={{ textAlign: 'left', padding: '12px 16px', fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
+            {t('blackspotTitle')}
+          </caption>
           <thead>
             <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-app)', color: 'var(--text-sub)' }}>
-              <th style={{ padding: '12px 16px' }}>{t('colFacility')}</th>
-              <th style={{ padding: '12px 16px' }}>{t('colTotalCases')}</th>
-              <th style={{ padding: '12px 16px' }}>{t('colRejectionRate')}</th>
-              <th style={{ padding: '12px 16px' }}>{t('colSignals')}</th>
-              <th style={{ padding: '12px 16px' }}>{t('colReroutes')}</th>
-              <th style={{ padding: '12px 16px' }}>{t('colMedianAck')}</th>
-              <th style={{ padding: '12px 16px' }}>{t('colSeverity')}</th>
-              <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+              <th scope="col" style={{ padding: '12px 16px' }}>{t('colFacility')}</th>
+              <th scope="col" style={{ padding: '12px 16px' }}>{t('colTotalCases')}</th>
+              <th scope="col" style={{ padding: '12px 16px' }}>{t('colRejectionRate')}</th>
+              <th scope="col" style={{ padding: '12px 16px' }}>{t('colSignals')}</th>
+              <th scope="col" style={{ padding: '12px 16px' }}>{t('colReroutes')}</th>
+              <th scope="col" style={{ padding: '12px 16px' }}>{t('colMedianAck')}</th>
+              <th scope="col" style={{ padding: '12px 16px' }}>{t('colSeverity')}</th>
+              <th scope="col" style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -336,6 +343,7 @@ export const BlackspotDashboardPage: React.FC = () => {
                   <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                     <button
                       onClick={() => setSelectedFacilitySignals(item)}
+                      aria-label={`View capacity signals for ${item.facilityName}`}
                       className="secondary-btn"
                       style={{ width: 'auto', padding: '4px 10px', fontSize: '11px', minHeight: '30px' }}
                     >
@@ -356,14 +364,50 @@ export const BlackspotDashboardPage: React.FC = () => {
 
       {/* Non-identifying Capacity Signals History Modal */}
       {selectedFacilitySignals && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="blackspot-facility-name"
+          aria-describedby="blackspot-signals-desc"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              setSelectedFacilitySignals(null);
+            } else if (e.key === 'Tab') {
+              const modal = e.currentTarget;
+              const focusables = modal.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+              );
+              if (focusables.length > 0) {
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                  e.preventDefault();
+                  last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                  e.preventDefault();
+                  first.focus();
+                }
+              }
+            }
+          }}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+        >
           <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-app)', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '560px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>{selectedFacilitySignals.facilityName}</h3>
-                <span style={{ fontSize: '12px', color: 'var(--text-sub)' }}>{t('signalsModalTitle')}</span>
+                <h3 id="blackspot-facility-name" style={{ fontSize: '16px', fontWeight: 700 }}>
+                  {selectedFacilitySignals.facilityName}
+                </h3>
+                <span id="blackspot-signals-desc" style={{ fontSize: '12px', color: 'var(--text-sub)' }}>
+                  {t('signalsModalTitle')}
+                </span>
               </div>
-              <button onClick={() => setSelectedFacilitySignals(null)} style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer' }}>
+              <button
+                onClick={() => setSelectedFacilitySignals(null)}
+                aria-label="Close signals dialog"
+                style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer', padding: '4px' }}
+              >
                 <X size={20} />
               </button>
             </div>
@@ -385,7 +429,7 @@ export const BlackspotDashboardPage: React.FC = () => {
               )}
             </div>
 
-            <button onClick={() => setSelectedFacilitySignals(null)} className="primary-btn">
+            <button onClick={() => setSelectedFacilitySignals(null)} className="primary-btn" autoFocus>
               <span>{t('confirm')}</span>
             </button>
           </div>

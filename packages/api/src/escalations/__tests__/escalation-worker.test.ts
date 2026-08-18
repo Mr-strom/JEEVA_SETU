@@ -43,6 +43,12 @@ describe('Phase 8A: Escalation Scanner Worker & Deduplication', () => {
     // Mock prisma.$transaction to simulate atomic execution with unique constraint
     vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => {
       const txMock = {
+        referralCase: {
+          findUnique: vi.fn().mockResolvedValue({
+            id: overdueCase.id,
+            status: CaseStatus.ACKNOWLEDGEMENT_PENDING,
+          }),
+        },
         playbook: {
           findFirst: vi.fn().mockResolvedValue(mockPlaybook),
         },
@@ -122,5 +128,48 @@ describe('Phase 8A: Escalation Scanner Worker & Deduplication', () => {
     expect(secondRun.created).toBe(0); // Deduplicated, zero duplicate escalations created
     expect(secondRun.failed).toBe(0);
     expect(Object.keys(existingEscalations).length).toBe(1); // Still exactly one escalation in database
+  });
+
+  it('correctly handles a case that becomes resolved (e.g. manually accepted) WHILE worker is mid-scan', async () => {
+    // Initial fetch returned the case as ACKNOWLEDGEMENT_PENDING
+    vi.spyOn(prisma.referralCase, 'findMany').mockImplementation(async (args: any) => {
+      if (args?.where?.status === CaseStatus.ACKNOWLEDGEMENT_PENDING) {
+        return [overdueCase] as any;
+      }
+      return [];
+    });
+    vi.spyOn(prisma.followUpTask, 'findMany').mockResolvedValue([]);
+
+    // But by the time transaction executes, triage desk accepted the case concurrently
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => {
+      const txMock = {
+        referralCase: {
+          findUnique: vi.fn().mockResolvedValue({
+            id: overdueCase.id,
+            status: CaseStatus.ACCEPTED, // Concurrently resolved!
+          }),
+        },
+        playbook: {
+          findFirst: vi.fn().mockResolvedValue(mockPlaybook),
+        },
+        gapEvent: {
+          create: vi.fn(),
+        },
+        escalation: {
+          create: vi.fn(),
+        },
+        playbookStep: {
+          createMany: vi.fn(),
+        },
+      };
+      return callback(txMock);
+    });
+
+    const result = await escalationScanner.scan();
+
+    expect(result.scanned).toBe(1);
+    expect(result.created).toBe(0); // 0 escalations created because case was resolved concurrently
+    expect(result.failed).toBe(0);
+    expect(Object.keys(existingEscalations).length).toBe(0);
   });
 });

@@ -172,6 +172,32 @@ describe('Phase 8A: GapSense Deterministic Classification Engine & Overrides', (
       expect(res.causeClass).toBe(GapCauseClass.UNDETERMINED);
       expect(res.evidence.some((e) => e.key === 'CONFLICTING_EVIDENCE')).toBe(true);
     });
+
+    it('Re-classification: updates classification deterministically when new late-arriving evidence arrives', () => {
+      // 1. Initial state: unacknowledged with unconfirmed SMS notification -> ACKNOWLEDGEMENT / COMMUNICATION
+      const initialClassification = classifyGap({
+        caseId: 'case-reclass-001',
+        status: CaseStatus.ACKNOWLEDGEMENT_PENDING,
+        acknowledgementDeadline: new Date(Date.now() - 20 * 60 * 1000),
+        hasAcknowledgementEvent: false,
+        notificationDelivered: false,
+      });
+
+      expect(initialClassification.phase).toBe(GapPhase.ACKNOWLEDGEMENT);
+      expect(initialClassification.causeClass).toBe(GapCauseClass.COMMUNICATION);
+
+      // 2. New evidence arrives: hospital officially logs rejection with NO_BED -> CAPACITY / CAPACITY
+      const reclassifiedResult = classifyGap({
+        caseId: 'case-reclass-001',
+        status: CaseStatus.REJECTED,
+        capacityReasonCode: CapacityReasonCode.NO_BED,
+        rejectionEventId: 'ev-reclass-rej-01',
+      });
+
+      expect(reclassifiedResult.phase).toBe(GapPhase.CAPACITY);
+      expect(reclassifiedResult.causeClass).toBe(GapCauseClass.CAPACITY);
+      expect(reclassifiedResult.evidence.some((e) => e.value === CapacityReasonCode.NO_BED)).toBe(true);
+    });
   });
 
   describe('2. Supervisor Gap Override Endpoint', () => {

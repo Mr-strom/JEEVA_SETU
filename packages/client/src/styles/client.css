@@ -350,3 +350,43 @@ body {
 .bottom-nav-item.active {
   color: var(--border-active);
 }
+
+/* Accessibility: WCAG Compliant Visible Focus States */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.checkbox-card:focus-visible,
+.sync-banner:focus-visible,
+.bottom-nav-item:focus-visible {
+  outline: 2px solid var(--border-active);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+}
+
+/* Kannada Script Rendering & Line-height adjustments */
+[lang="kn"],
+html[lang="kn"] body {
+  font-family: 'Noto Sans Kannada', 'Tunga', 'Kedage', 'Malige', var(--font-sans);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+/* 360px Viewport Safe Layout */
+@media (max-width: 380px) {
+  .mobile-app-wrapper {
+    width: 100%;
+    min-width: 320px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .checkbox-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    min-height: 48px;
+  }
+}

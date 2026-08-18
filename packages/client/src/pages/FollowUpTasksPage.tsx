@@ -105,6 +105,9 @@ export const FollowUpTasksPage: React.FC = () => {
       {/* Modal Dialog for Recording Visit */}
       {activeTask && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="record-visit-modal-title"
           style={{
             position: 'fixed',
             top: 0,
@@ -119,6 +122,28 @@ export const FollowUpTasksPage: React.FC = () => {
             padding: '16px',
           }}
           onClick={() => !submitting && setActiveTask(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && !submitting) {
+              e.preventDefault();
+              setActiveTask(null);
+            } else if (e.key === 'Tab') {
+              const modal = e.currentTarget;
+              const focusables = modal.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+              );
+              if (focusables.length > 0) {
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                  e.preventDefault();
+                  last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                  e.preventDefault();
+                  first.focus();
+                }
+              }
+            }
+          }}
         >
           <div
             style={{
@@ -132,9 +157,12 @@ export const FollowUpTasksPage: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>{t('recordVisitPrimary')}</h3>
+              <h3 id="record-visit-modal-title" style={{ fontSize: '16px', fontWeight: 700 }}>
+                {t('recordVisitPrimary')}
+              </h3>
               <button
                 onClick={() => setActiveTask(null)}
+                aria-label="Close dialog"
                 style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer' }}
               >
                 <X size={20} />
