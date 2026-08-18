@@ -1,5 +1,3 @@
-/// <reference lib="webworker" />
-
 const CACHE_NAME = 'jeevasetu-frontline-shell-v1';
 const STATIC_ASSETS = [
   '/',
@@ -9,21 +7,19 @@ const STATIC_ASSETS = [
   '/icon-512.svg',
 ];
 
-const sw = self as unknown as ServiceWorkerGlobalScope;
-
 // 1. Install: Precache App Shell
-sw.addEventListener('install', (event: ExtendableEvent) => {
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[ServiceWorker] Precaching App Shell');
       return cache.addAll(STATIC_ASSETS);
     }),
   );
-  sw.skipWaiting();
+  self.skipWaiting();
 });
 
 // 2. Activate: Cleanup Old Caches
-sw.addEventListener('activate', (event: ExtendableEvent) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -37,11 +33,11 @@ sw.addEventListener('activate', (event: ExtendableEvent) => {
       ),
     ),
   );
-  sw.clients.claim();
+  self.clients.claim();
 });
 
 // 3. Fetch: Cache-First for Shell Assets, Network-First for API calls
-sw.addEventListener('fetch', (event: FetchEvent) => {
+self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // API Requests: Network-First with outbox fallback
@@ -90,5 +86,3 @@ sw.addEventListener('fetch', (event: FetchEvent) => {
     }),
   );
 });
-
-export {};

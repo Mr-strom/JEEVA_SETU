@@ -44,4 +44,40 @@ describe('Phase 11 B1: Deployment Health & Readiness Probes', () => {
     expect(body.checks.redis).toBeDefined();
     expect(body.timestamp).toBeDefined();
   });
+
+  describe('Degraded Dependency Error Paths', () => {
+    beforeAll(() => {
+      process.env.TEST_DEGRADED = 'true';
+    });
+
+    afterAll(() => {
+      delete process.env.TEST_DEGRADED;
+    });
+
+    it('GET /health returns 503 degraded when database check fails', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/health',
+      });
+
+      expect(res.statusCode).toBe(503);
+      const body = JSON.parse(res.payload);
+      expect(body.status).toBe('degraded');
+      expect(body.database).toBe('disconnected');
+      expect(body.service).toBe('jeevasetu-api');
+    });
+
+    it('GET /ready returns 503 not_ready when database check fails', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/ready',
+      });
+
+      expect(res.statusCode).toBe(503);
+      const body = JSON.parse(res.payload);
+      expect(body.status).toBe('not_ready');
+      expect(body.checks.database).toBe('error');
+      expect(body.service).toBe('jeevasetu-api');
+    });
+  });
 });

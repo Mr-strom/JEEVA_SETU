@@ -22,6 +22,7 @@ import { authenticate, authorizeRoles } from './auth/auth.middleware';
 import { SUPERVISOR_ROLES } from './shared/constants';
 import { BLACKSPOT_CONFIG } from './shared/constants';
 import { prisma } from './shared/db';
+import Redis from 'ioredis';
 
 export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   const app = fastify({
@@ -155,9 +156,10 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
       dbStatus = 'disconnected';
     }
 
-    const isHealthy = dbStatus === 'connected' || process.env.NODE_ENV === 'test';
+    const isHealthy = dbStatus === 'connected' || (process.env.NODE_ENV === 'test' && process.env.TEST_DEGRADED !== 'true');
+    const responseStatus = dbStatus === 'connected' ? 'ok' : (isHealthy ? 'ok' : 'degraded');
     return reply.status(isHealthy ? 200 : 503).send({
-      status: isHealthy ? 'ok' : 'degraded',
+      status: responseStatus,
       service: 'jeevasetu-api',
       version: '2.0.0',
       database: dbStatus,
@@ -165,7 +167,7 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
     });
   });
 
-  // Readiness check endpoint (Readiness Probe: DB + Redis if configured)
+  // Readiness check endpoint (Readiness Probe: DB + Redis ping if configured)
   app.get('/ready', async (_req, reply) => {
     let dbStatus: 'connected' | 'error' = 'error';
     try {
@@ -175,12 +177,26 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
       dbStatus = 'error';
     }
 
-    const redisConfigured = !!process.env.REDIS_URL;
-    const redisStatus: 'connected' | 'not_configured' | 'error' = redisConfigured ? 'connected' : 'not_configured';
+    let redisStatus: 'connected' | 'not_configured' | 'error' = 'not_configured';
+    if (process.env.REDIS_URL) {
+      try {
+        const redisClient = new Redis(process.env.REDIS_URL, {
+          connectTimeout: 1000,
+          maxRetriesPerRequest: 1,
+          lazyConnect: true,
+        });
+        await redisClient.connect();
+        const pong = await redisClient.ping();
+        await redisClient.quit();
+        redisStatus = pong === 'PONG' ? 'connected' : 'error';
+      } catch {
+        redisStatus = 'error';
+      }
+    }
 
-    const isReady = dbStatus === 'connected' || process.env.NODE_ENV === 'test';
+    const isReady = (dbStatus === 'connected' && (redisStatus === 'connected' || redisStatus === 'not_configured')) || (process.env.NODE_ENV === 'test' && process.env.TEST_DEGRADED !== 'true');
     return reply.status(isReady ? 200 : 503).send({
-      status: isReady ? 'ready' : 'not_ready',
+      status: isReady && dbStatus === 'connected' ? 'ready' : (isReady ? 'ready' : 'not_ready'),
       service: 'jeevasetu-api',
       checks: {
         database: dbStatus,
