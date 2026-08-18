@@ -169,6 +169,7 @@ export async function seed() {
       name: 'Kavitha H (Mysuru District RCH Supervisor)',
       role: Role.DISTRICT_SUPERVISOR,
       facilityId: null, // District-level supervisor
+      district: 'Mysuru',
       phone: '+91-9480000005',
       isActive: true,
     },

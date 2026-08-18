@@ -2,6 +2,7 @@ import { Role, EscalationStatus, PlaybookStepStatus, AuditAction } from '@prisma
 import { prisma } from '../shared/db';
 import { AuthUser } from '../shared/types';
 import { auditService } from '../audit/audit.service';
+import { NotFoundError } from '../shared/errors';
 import { escalationScanner } from './escalation-scanner';
 
 export interface RecordPlaybookStepInput {
@@ -79,7 +80,7 @@ export class EscalationsService {
     });
 
     if (!escalation) {
-      throw new Error(`Escalation '${id}' not found`);
+      throw new NotFoundError('Escalation', id);
     }
 
     return escalation;
@@ -102,7 +103,7 @@ export class EscalationsService {
     });
 
     if (!existing) {
-      throw new Error(`Escalation '${id}' not found`);
+      throw new NotFoundError('Escalation', id);
     }
 
     const now = new Date();
@@ -164,12 +165,12 @@ export class EscalationsService {
     });
 
     if (!existing) {
-      throw new Error(`Escalation '${id}' not found`);
+      throw new NotFoundError('Escalation', id);
     }
 
     const step = existing.steps.find((s) => s.id === input.stepId || s.id === input.stepId);
     if (!step) {
-      throw new Error(`PlaybookStep '${input.stepId}' not found on escalation '${id}'`);
+      throw new NotFoundError('PlaybookStep', input.stepId);
     }
 
     const now = new Date();
@@ -238,7 +239,7 @@ export class EscalationsService {
     });
 
     if (!existing) {
-      throw new Error(`Escalation '${id}' not found`);
+      throw new NotFoundError('Escalation', id);
     }
 
     const now = new Date();

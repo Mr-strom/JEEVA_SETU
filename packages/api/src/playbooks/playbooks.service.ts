@@ -2,6 +2,7 @@ import { AuditAction, GapPhase, GapCauseClass } from '@prisma/client';
 import { prisma } from '../shared/db';
 import { AuthUser } from '../shared/types';
 import { auditService } from '../audit/audit.service';
+import { NotFoundError } from '../shared/errors';
 import { CreatePlaybookInput, UpdatePlaybookInput } from './playbooks.schema';
 
 export class PlaybooksService {
@@ -22,7 +23,7 @@ export class PlaybooksService {
       where: { id },
     });
     if (!playbook) {
-      throw new Error(`Playbook '${id}' not found`);
+      throw new NotFoundError('Playbook', id);
     }
     return playbook;
   }

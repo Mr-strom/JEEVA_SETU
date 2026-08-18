@@ -30,7 +30,7 @@ export class RoutingService {
     });
 
     if (!targetCase) {
-      throw new Error(`ReferralCase '${caseId}' not found`);
+      throw new NotFoundError('ReferralCase', caseId);
     }
 
     // Candidate facilities in Karnataka

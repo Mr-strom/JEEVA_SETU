@@ -26,8 +26,14 @@ export const BLACKSPOT_CONFIG = {
 };
 
 export const GAPSENSE_CONFIG = {
-  DEFAULT_ACKNOWLEDGEMENT_TIMEOUT_MINUTES: 30,
-  DEFAULT_DISPOSITION_TIMEOUT_HOURS: 4,
-  DEFAULT_FOLLOW_UP_WINDOW_DAYS: 3,
+  get DEFAULT_ACKNOWLEDGEMENT_TIMEOUT_MINUTES(): number {
+    return parseInt(process.env.DEFAULT_ACKNOWLEDGEMENT_TIMEOUT_MINUTES || '30', 10);
+  },
+  get DEFAULT_DISPOSITION_TIMEOUT_HOURS(): number {
+    return parseInt(process.env.DEFAULT_DISPOSITION_TIMEOUT_HOURS || '4', 10);
+  },
+  get DEFAULT_FOLLOW_UP_WINDOW_DAYS(): number {
+    return parseInt(process.env.DEFAULT_FOLLOW_UP_WINDOW_DAYS || '3', 10);
+  },
   LABEL: 'likely cause, pending supervisor review',
 };

@@ -2,6 +2,7 @@ import { GapPhase, GapCauseClass, AuditAction } from '@prisma/client';
 import { prisma } from '../shared/db';
 import { AuthUser } from '../shared/types';
 import { auditService } from '../audit/audit.service';
+import { NotFoundError } from '../shared/errors';
 import { classifyGap } from './gaps.engine';
 import { GapClassificationInput } from './gaps.types';
 
@@ -68,7 +69,7 @@ export class GapsService {
     });
 
     if (!existingGap) {
-      throw new Error(`GapEvent '${gapId}' not found`);
+      throw new NotFoundError('GapEvent', gapId);
     }
 
     const previousPhase = existingGap.phase;

@@ -145,7 +145,12 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   );
 
   // Health check endpoint
-  app.get('/health', async () => ({ status: 'ok', service: 'jeevasetu-api' }));
+  app.get('/health', async () => ({
+    status: 'ok',
+    service: 'jeevasetu-api',
+    version: '2.0.0',
+    timestamp: new Date().toISOString(),
+  }));
 
   return app;
 }

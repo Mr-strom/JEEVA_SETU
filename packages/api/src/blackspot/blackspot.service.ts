@@ -2,6 +2,7 @@ import { Role, CapacityReasonCode } from '@prisma/client';
 import { prisma } from '../shared/db';
 import { AuthUser } from '../shared/types';
 import { BLACKSPOT_CONFIG } from '../shared/constants';
+import { NotFoundError } from '../shared/errors';
 import {
   BlackspotSummaryItem,
   BlackspotSummaryResponse,
@@ -211,7 +212,7 @@ export class BlackspotService {
     });
 
     if (!facility) {
-      throw new Error(`Facility '${facilityId}' not found`);
+      throw new NotFoundError('Facility', facilityId);
     }
 
     const rollingDays = query.rollingDays ? Math.max(1, query.rollingDays) : 30;

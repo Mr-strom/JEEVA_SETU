@@ -1,0 +1,18 @@
+{
+  "name": "JeevaSetu Frontline (ಜೀವಸೇತು)",
+  "short_name": "JeevaSetu",
+  "description": "Karnataka High-Risk Maternal Referral Safety Layer for Frontline Health Workers (ASHA/ANM)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#1E293B",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

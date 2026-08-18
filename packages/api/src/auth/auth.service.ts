@@ -91,7 +91,7 @@ export class AuthService {
         name: user.name,
         role: user.role,
         facilityId: user.facilityId,
-        district: user.facility?.district || (user as any).district || null,
+        district: user.facility?.district || user.district || null,
         isActive: user.isActive,
       };
     } catch (err) {
@@ -130,7 +130,7 @@ export class AuthService {
       name: user.name,
       role: user.role,
       facilityId: user.facilityId,
-      district: user.facility?.district || null,
+      district: user.facility?.district || user.district || null,
       isActive: user.isActive,
     };
 

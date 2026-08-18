@@ -113,6 +113,7 @@ model User {
   role          Role
   facilityId    String?
   facility      Facility? @relation(fields: [facilityId], references: [id])
+  district      String?   // District oversight for District Supervisors / DHOs
   phone         String?
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
