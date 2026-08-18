@@ -15,6 +15,7 @@ import { auditRoutes } from './audit/audit.routes';
 import { syncRoutes } from './sync/sync.routes';
 import { gapsRoutes } from './gaps/gaps.routes';
 import { escalationsRoutes } from './escalations/escalation.routes';
+import { playbooksRoutes } from './playbooks/playbooks.routes';
 import { authenticate, authorizeRoles } from './auth/auth.middleware';
 import { SUPERVISOR_ROLES } from './shared/constants';
 import { BLACKSPOT_CONFIG } from './shared/constants';
@@ -128,6 +129,9 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
 
       // Escalation routes (/api/v1/escalations/scan, /api/v1/escalations, /api/v1/escalations/:id)
       v1.register(escalationsRoutes);
+
+      // Playbooks routes (/api/v1/playbooks, /api/v1/playbooks/:id)
+      v1.register(playbooksRoutes);
 
       // Supervisor Dashboard Endpoint Stub (/api/v1/blackspot/summary) for RBAC enforcement
       v1.get(

@@ -13,6 +13,8 @@ describe('Phase 6A: Operations Dashboard Shell & Access Control', () => {
           return true;
         case '/disposition':
           return ['CLINICIAN', 'CLINICAL_ADMINISTRATOR'].includes(role);
+        case '/escalations':
+          return ['DISTRICT_SUPERVISOR', 'ADMINISTRATOR', 'CLINICAL_ADMINISTRATOR'].includes(role);
         case '/follow-ups':
           return [
             'FRONTLINE_WORKER',
@@ -56,6 +58,17 @@ describe('Phase 6A: Operations Dashboard Shell & Access Control', () => {
       expect(checkRoleAccess('SENDING_FACILITY', '/disposition')).toBe(false);
       expect(checkRoleAccess('RECEIVING_FACILITY', '/disposition')).toBe(false);
       expect(checkRoleAccess('DISTRICT_SUPERVISOR', '/disposition')).toBe(false);
+    });
+
+    it('only supervisors and admins can access /escalations', () => {
+      expect(checkRoleAccess('DISTRICT_SUPERVISOR', '/escalations')).toBe(true);
+      expect(checkRoleAccess('CLINICAL_ADMINISTRATOR', '/escalations')).toBe(true);
+      expect(checkRoleAccess('ADMINISTRATOR', '/escalations')).toBe(true);
+
+      expect(checkRoleAccess('FRONTLINE_WORKER', '/escalations')).toBe(false);
+      expect(checkRoleAccess('SENDING_FACILITY', '/escalations')).toBe(false);
+      expect(checkRoleAccess('RECEIVING_FACILITY', '/escalations')).toBe(false);
+      expect(checkRoleAccess('CLINICIAN', '/escalations')).toBe(false);
     });
 
     it('frontline workers, facilities, and supervisors can access /follow-ups', () => {

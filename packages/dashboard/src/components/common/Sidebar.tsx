@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, ListOrdered, CheckSquare, Stethoscope, User } from 'lucide-react';
+import { LayoutDashboard, ListOrdered, CheckSquare, Stethoscope, User, AlertTriangle } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const { t } = useLanguage();
@@ -47,6 +47,16 @@ export const Sidebar: React.FC = () => {
           >
             <Stethoscope size={18} />
             <span>{t('recordDisposition')}</span>
+          </NavLink>
+        )}
+
+        {canAccessRoute('/escalations') && (
+          <NavLink
+            to="/escalations"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <AlertTriangle size={18} />
+            <span>{t('navEscalations')}</span>
           </NavLink>
         )}
 
