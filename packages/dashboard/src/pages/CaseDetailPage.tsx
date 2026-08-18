@@ -25,13 +25,15 @@ export const CaseDetailPage: React.FC = () => {
   const [referral, setReferral] = useState<ReferralCase | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeModal, setActiveModal] = useState<
-    'ACCEPT' | 'REDIRECT' | 'REJECT' | 'ARRIVAL' | 'DISPOSITION' | 'DISCHARGE' | 'CLOSE' | null
+    'ACCEPT' | 'REDIRECT' | 'REJECT' | 'ARRIVAL' | 'DISPOSITION' | 'DISCHARGE' | 'CLOSE' | 'REROUTE' | null
   >(null);
 
   // Form states for modals
   const [reasonCode, setReasonCode] = useState<CapacityReasonCode>('NO_BED');
   const [modalNotes, setModalNotes] = useState<string>('');
-  const [targetFacilityId, setTargetFacilityId] = useState<string>('22222222-2222-2222-2222-222222222202');
+  const [targetFacilityId, setTargetFacilityId] = useState<string>('22222222-2222-2222-2222-222222222201');
+  const [rerouteOverrideReason, setRerouteOverrideReason] = useState<string>('');
+  const [routeSuggestions, setRouteSuggestions] = useState<any[]>([]);
   const [delayReason, setDelayReason] = useState<string>('TRAFFIC_CONGESTION');
   const [dispCategory, setDispCategory] = useState<DispositionCategory>('ADMITTED');
   const [dischargeSummary, setDischargeSummary] = useState<string>('');
@@ -101,14 +103,35 @@ export const CaseDetailPage: React.FC = () => {
           note: modalNotes,
         });
         setReferral(updated);
+      } else if (activeModal === 'REROUTE') {
+        const updated = await api.confirmReroute(referral.id, {
+          targetFacilityId,
+          overrideReason: rerouteOverrideReason.trim() || undefined,
+        });
+        setReferral(updated);
       }
       setActiveModal(null);
       setModalNotes('');
+      setRerouteOverrideReason('');
     } catch (err: any) {
       setErrorMessage(err?.message || t('errorOccurred'));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleOpenRerouteModal = async () => {
+    if (!referral) return;
+    try {
+      const data = await api.getRouteSuggestions(referral.id);
+      setRouteSuggestions(data.suggestions || []);
+      if (data.suggestions?.length > 0) {
+        setTargetFacilityId(data.suggestions[0].suggestedFacilityId);
+      }
+    } catch (e) {
+      console.error('Failed to load routing suggestions', e);
+    }
+    setActiveModal('REROUTE');
   };
 
   if (loading) {
@@ -216,6 +239,17 @@ export const CaseDetailPage: React.FC = () => {
             >
               <LogOut size={15} />
               <span>{t('dischargePatient')}</span>
+            </button>
+          )}
+
+          {['REJECTED', 'REDIRECT_SUGGESTED'].includes(referral.status) && (
+            <button
+              onClick={handleOpenRerouteModal}
+              className="btn btn-primary btn-sm"
+              style={{ backgroundColor: '#2563EB' }}
+            >
+              <CornerUpRight size={15} />
+              <span>{t('confirmRerouteBtn')}</span>
             </button>
           )}
 
@@ -463,6 +497,70 @@ export const CaseDetailPage: React.FC = () => {
                 </div>
               )}
 
+              {/* Re-routing: Alternate Suggestions and Selection */}
+              {activeModal === 'REROUTE' && (
+                <div>
+                  <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', fontSize: '13px' }}>
+                    <strong>{t('rejectedByLabel')}</strong> {referral.receivingFacility?.name || 'Previous Destination'}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t('suggestedAlternatesLabel')}</label>
+                    {routeSuggestions.length === 0 ? (
+                      <div style={{ padding: '12px', backgroundColor: 'var(--bg-app)', border: '1px dashed var(--border-app)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                        {t('noAlternateConfigured')}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                        {routeSuggestions.map((sug) => {
+                          const isSelected = targetFacilityId === sug.suggestedFacilityId;
+                          return (
+                            <div
+                              key={sug.suggestedFacilityId}
+                              onClick={() => setTargetFacilityId(sug.suggestedFacilityId)}
+                              style={{
+                                border: `1.5px solid ${isSelected ? '#3B82F6' : 'var(--border-app)'}`,
+                                backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.08)' : 'var(--bg-app)',
+                                borderRadius: '8px',
+                                padding: '12px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <span style={{ fontWeight: 700, fontSize: '14px' }}>{sug.suggestedFacility.name}</span>
+                                <span style={{ fontSize: '11px', fontWeight: 800, backgroundColor: '#3B82F6', color: '#FFF', padding: '2px 8px', borderRadius: '12px' }}>
+                                  {t('rankBadge')}{sug.rank} • Score: {sug.score}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                                {sug.suggestedFacility.district} • {sug.suggestedFacility.type} • {sug.suggestedFacility.capacityBeds} beds
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {(sug.reasons || []).map((r: string, idx: number) => (
+                                  <span key={idx} style={{ fontSize: '10px', backgroundColor: 'var(--bg-surface)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-app)' }}>
+                                    ✓ {r}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t('rerouteOverrideReason')}</label>
+                    <textarea
+                      className="form-control"
+                      value={rerouteOverrideReason}
+                      onChange={(e) => setRerouteOverrideReason(e.target.value)}
+                      placeholder="Required if overriding rank #1 recommendation..."
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Discharge summary */}
               {activeModal === 'DISCHARGE' && (
                 <div className="form-group">
@@ -477,7 +575,7 @@ export const CaseDetailPage: React.FC = () => {
               )}
 
               {/* General Operational Notes */}
-              {activeModal !== 'DISCHARGE' && (
+              {activeModal !== 'DISCHARGE' && activeModal !== 'REROUTE' && (
                 <div className="form-group">
                   <label className="form-label">{t('reasonNoteLabel')}</label>
                   <textarea

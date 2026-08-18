@@ -575,6 +575,87 @@ export class ApiService {
     }
     return { ...task };
   }
+
+  async getRouteSuggestions(id: string): Promise<any> {
+    const target = this.cases.find((c) => c.id === id || c.caseId === id);
+    if (!target) throw new Error('Case not found');
+
+    // Return synthetic suggestions excluding current receiving facility
+    const suggestions = [
+      {
+        suggestedFacilityId: '22222222-2222-2222-2222-222222222201',
+        suggestedFacility: {
+          id: '22222222-2222-2222-2222-222222222201',
+          name: 'Cheluvamba Hospital (MMCRI)',
+          nameKn: 'ಚೆಲುವಾಂಬ ಆಸ್ಪತ್ರೆ',
+          district: 'Mysuru',
+          type: 'TERTIARY_HOSPITAL',
+          specialties: ['OBSTETRICS', 'NICU', 'BLOOD_BANK', 'OT'],
+          capacityBeds: 250,
+        },
+        rank: 1,
+        score: 95,
+        reasons: ['Same District (Mysuru)', 'Matched 4/4 required maternal services', 'High bed capacity (250 beds)', 'Tertiary Referral Center'],
+      },
+      {
+        suggestedFacilityId: '11111111-1111-1111-1111-111111111101',
+        suggestedFacility: {
+          id: '11111111-1111-1111-1111-111111111101',
+          name: 'Vani Vilas Hospital (BMCRI)',
+          nameKn: 'ವಾಣಿ ವಿಲಾಸ ಆಸ್ಪತ್ರೆ',
+          district: 'Bangalore Urban',
+          type: 'TERTIARY_HOSPITAL',
+          specialties: ['OBSTETRICS', 'NICU', 'BLOOD_BANK', 'OT', 'ICU'],
+          capacityBeds: 400,
+        },
+        rank: 2,
+        score: 75,
+        reasons: ['Adjacent District (Bangalore Urban)', 'Matched 5/5 required maternal services', 'State Apex Maternity Center'],
+      },
+    ].filter((s) => s.suggestedFacilityId !== target.receivingFacilityId);
+
+    return {
+      hasAlternate: suggestions.length > 0,
+      suggestions,
+      caseStatus: target.status,
+      rejectingFacility: target.receivingFacility,
+    };
+  }
+
+  async confirmReroute(id: string, payload: { targetFacilityId: string; overrideReason?: string }): Promise<ReferralCase> {
+    const target = this.cases.find((c) => c.id === id || c.caseId === id);
+    if (!target) throw new Error('Case not found');
+
+    const prevFacilityId = target.receivingFacilityId;
+    const prevFacilityName = target.receivingFacility?.name;
+
+    target.receivingFacilityId = payload.targetFacilityId;
+    target.status = 'ACKNOWLEDGEMENT_PENDING';
+    target.acknowledgementDeadline = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    target.updatedAt = new Date().toISOString();
+
+    target.events = target.events || [];
+    target.events.push({
+      id: `ev-${Date.now()}`,
+      caseId: target.id,
+      type: 'REROUTED',
+      fromStatus: 'REDIRECT_SUGGESTED',
+      toStatus: 'ACKNOWLEDGEMENT_PENDING',
+      actorId: 'supervisor-mysuru',
+      actorRole: 'DISTRICT_SUPERVISOR',
+      payload: {
+        previousFacilityId: prevFacilityId,
+        previousFacilityName: prevFacilityName,
+        newFacilityId: payload.targetFacilityId,
+        overrideReason: payload.overrideReason,
+        restartedDeadline: target.acknowledgementDeadline,
+      },
+      createdAt: new Date().toISOString(),
+    });
+
+    return { ...target };
+  }
 }
 
 export const api = new ApiService();
+

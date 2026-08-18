@@ -158,6 +158,17 @@ export const translations = {
     resolutionSummaryLabel: 'Resolution Summary (Mandatory)',
     resolutionSummaryPlaceholder: 'Explain how the handoff failure was resolved safely...',
 
+    // Re-routing & Capacity Alternate Suggestions
+    confirmRerouteBtn: 'Confirm Re-route to Alternate Facility',
+    rerouteModalTitle: 'Alternate Facility Routing Suggestions',
+    rejectedByLabel: 'Capacity Rejected by:',
+    suggestedAlternatesLabel: 'Ranked Suggested Alternate Facilities',
+    noAlternateConfigured: 'No alternate currently configured in network',
+    rankBadge: 'Rank #',
+    selectFacility: 'Select Destination Facility:',
+    rerouteOverrideReason: 'Clinical / Ops Reason for Custom Selection (Mandatory if overriding rank #1)',
+    rerouteSuccess: 'Case successfully rerouted. Acknowledgement timer restarted.',
+
     // General Dialogs & Buttons
     confirm: 'Confirm Action',
     cancel: 'Cancel',
@@ -323,6 +334,17 @@ export const translations = {
     overrideReasonPlaceholder: 'ಸ್ವಯಂಚಾಲಿತ ವರ್ಗೀಕರಣ ಅಸಮರ್ಪಕವಾಗಿರಲು ಕಾರಣವನ್ನು ಬರೆಯಿರಿ...',
     resolutionSummaryLabel: 'ಇತ್ಯರ್ಥದ ಸಾರಾಂಶ (ಕಡ್ಡಾಯ)',
     resolutionSummaryPlaceholder: 'ಪ್ರಕರಣವನ್ನು ಹೇಗೆ ಸುರಕ್ಷಿತವಾಗಿ ಪರಿಹರಿಸಲಾಯಿತು ಎಂದು ವಿವರಿಸಿ...',
+
+    // Re-routing & Capacity Alternate Suggestions
+    confirmRerouteBtn: 'ಪರ್ಯಾಯ ಆಸ್ಪತ್ರೆಗೆ ಮರು ಮಾರ್ಗ ದೃಢೀಕರಿಸಿ',
+    rerouteModalTitle: 'ಪರ್ಯಾಯ ಆಸ್ಪತ್ರೆ ಸಲಹೆಗಳು',
+    rejectedByLabel: 'ಸಾಮರ್ಥ್ಯ ಕೊರತೆಯಿಂದ ನಿರಾಕರಿಸಿದ ಆಸ್ಪತ್ರೆ:',
+    suggestedAlternatesLabel: 'ಆದ್ಯತೆಯ ಆಧಾರಿತ ಪರ್ಯಾಯ ಆಸ್ಪತ್ರೆಗಳು',
+    noAlternateConfigured: 'ನೆಟ್‌ವರ್ಕ್‌ನಲ್ಲಿ ಯಾವುದೇ ಪರ್ಯಾಯ ಆಸ್ಪತ್ರೆ ಲಭ್ಯವಿಲ್ಲ',
+    rankBadge: 'ಆದ್ಯತೆ #',
+    selectFacility: 'ಪರ್ಯಾಯ ಆಸ್ಪತ್ರೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ:',
+    rerouteOverrideReason: 'ಕಸ್ಟಮ್ ಆಯ್ಕೆಗೆ ಕಾರಣ (ಕಡ್ಡಾಯ)',
+    rerouteSuccess: 'ಪ್ರಕರಣವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಮರು ಮಾರ್ಗಕ್ಕೆ ನಿಗದಿಪಡಿಸಲಾಗಿದೆ. ಸ್ವೀಕೃತಿ ಕಾಲಮಿತಿ ಮರುಪ್ರಾರಂಭವಾಗಿದೆ.',
 
     // General Dialogs & Buttons
     confirm: 'ಖಚಿತಪಡಿಸಿ',
