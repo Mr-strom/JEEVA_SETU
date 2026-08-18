@@ -41,3 +41,6 @@ prisma/migrations/
 # Misc
 *.tgz
 .cache/
+
+#demo images
+demo-shots/
