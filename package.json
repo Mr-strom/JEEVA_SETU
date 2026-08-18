@@ -10,6 +10,7 @@
     "dev:api": "npm run dev --workspace=packages/api",
     "dev:dashboard": "npm run dev --workspace=packages/dashboard",
     "dev:client": "npm run dev --workspace=packages/client",
+    "start:worker": "npm run start:worker --workspace=packages/api",
     "build": "npm run build --workspaces",
     "build:api": "npm run build --workspace=packages/api",
     "build:dashboard": "npm run build --workspace=packages/dashboard",
@@ -24,6 +25,7 @@
     "db:generate": "npm run db:generate --workspace=packages/api",
     "db:push": "npm run db:push --workspace=packages/api",
     "db:migrate": "npm run db:migrate --workspace=packages/api",
+    "db:migrate:deploy": "npm run db:migrate:deploy --workspace=packages/api",
     "db:studio": "npm run db:studio --workspace=packages/api",
     "openapi:validate": "npm run openapi:validate --workspace=packages/api"
   },

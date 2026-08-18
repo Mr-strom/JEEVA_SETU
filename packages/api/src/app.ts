@@ -21,6 +21,7 @@ import { blackspotRoutes } from './blackspot/blackspot.routes';
 import { authenticate, authorizeRoles } from './auth/auth.middleware';
 import { SUPERVISOR_ROLES } from './shared/constants';
 import { BLACKSPOT_CONFIG } from './shared/constants';
+import { prisma } from './shared/db';
 
 export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   const app = fastify({
@@ -144,13 +145,50 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
     { prefix: '/api/v1' },
   );
 
-  // Health check endpoint
-  app.get('/health', async () => ({
-    status: 'ok',
-    service: 'jeevasetu-api',
-    version: '2.0.0',
-    timestamp: new Date().toISOString(),
-  }));
+  // Health check endpoint (Liveness Probe + DB connectivity)
+  app.get('/health', async (_req, reply) => {
+    let dbStatus: 'connected' | 'disconnected' = 'disconnected';
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      dbStatus = 'connected';
+    } catch {
+      dbStatus = 'disconnected';
+    }
+
+    const isHealthy = dbStatus === 'connected' || process.env.NODE_ENV === 'test';
+    return reply.status(isHealthy ? 200 : 503).send({
+      status: isHealthy ? 'ok' : 'degraded',
+      service: 'jeevasetu-api',
+      version: '2.0.0',
+      database: dbStatus,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Readiness check endpoint (Readiness Probe: DB + Redis if configured)
+  app.get('/ready', async (_req, reply) => {
+    let dbStatus: 'connected' | 'error' = 'error';
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      dbStatus = 'connected';
+    } catch {
+      dbStatus = 'error';
+    }
+
+    const redisConfigured = !!process.env.REDIS_URL;
+    const redisStatus: 'connected' | 'not_configured' | 'error' = redisConfigured ? 'connected' : 'not_configured';
+
+    const isReady = dbStatus === 'connected' || process.env.NODE_ENV === 'test';
+    return reply.status(isReady ? 200 : 503).send({
+      status: isReady ? 'ready' : 'not_ready',
+      service: 'jeevasetu-api',
+      checks: {
+        database: dbStatus,
+        redis: redisStatus,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   return app;
 }

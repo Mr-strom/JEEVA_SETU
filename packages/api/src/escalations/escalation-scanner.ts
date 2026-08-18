@@ -2,6 +2,7 @@ import { CaseStatus, EscalationStatus, AuditAction, GapPhase, GapCauseClass } fr
 import { prisma } from '../shared/db';
 import { classifyGap } from '../gaps/gaps.engine';
 import { auditService } from '../audit/audit.service';
+import { NotFoundError } from '../shared/errors';
 import { EscalationScanResult } from './escalation.types';
 
 export class EscalationScanner {
@@ -235,7 +236,7 @@ export class EscalationScanner {
       }
 
       if (!playbook) {
-        throw new Error(`No active Playbook found for phase=${phase}, cause=${causeClass}`);
+        throw new NotFoundError('Playbook', `phase=${phase}, cause=${causeClass}`);
       }
 
       // 1. Create GapEvent
