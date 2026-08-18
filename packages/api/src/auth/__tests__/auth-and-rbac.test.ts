@@ -108,6 +108,8 @@ describe('FR-01: Authentication, RBAC and Scope Access', () => {
       },
     ] as any);
 
+    vi.spyOn(prisma.referralCase, 'findMany').mockResolvedValue([]);
+    vi.spyOn(prisma.capacitySignal, 'findMany').mockResolvedValue([]);
     vi.spyOn(auditService, 'recordSecurityEvent').mockResolvedValue({} as any);
     vi.spyOn(auditService, 'record').mockResolvedValue({} as any);
   });

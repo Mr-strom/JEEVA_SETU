@@ -15,6 +15,8 @@ describe('Phase 6A: Operations Dashboard Shell & Access Control', () => {
           return ['CLINICIAN', 'CLINICAL_ADMINISTRATOR'].includes(role);
         case '/escalations':
           return ['DISTRICT_SUPERVISOR', 'ADMINISTRATOR', 'CLINICAL_ADMINISTRATOR'].includes(role);
+        case '/blackspot':
+          return ['DISTRICT_SUPERVISOR', 'ADMINISTRATOR', 'CLINICAL_ADMINISTRATOR'].includes(role);
         case '/follow-ups':
           return [
             'FRONTLINE_WORKER',
@@ -60,15 +62,19 @@ describe('Phase 6A: Operations Dashboard Shell & Access Control', () => {
       expect(checkRoleAccess('DISTRICT_SUPERVISOR', '/disposition')).toBe(false);
     });
 
-    it('only supervisors and admins can access /escalations', () => {
+    it('only supervisors and admins can access /escalations and /blackspot', () => {
       expect(checkRoleAccess('DISTRICT_SUPERVISOR', '/escalations')).toBe(true);
       expect(checkRoleAccess('CLINICAL_ADMINISTRATOR', '/escalations')).toBe(true);
       expect(checkRoleAccess('ADMINISTRATOR', '/escalations')).toBe(true);
 
-      expect(checkRoleAccess('FRONTLINE_WORKER', '/escalations')).toBe(false);
-      expect(checkRoleAccess('SENDING_FACILITY', '/escalations')).toBe(false);
-      expect(checkRoleAccess('RECEIVING_FACILITY', '/escalations')).toBe(false);
-      expect(checkRoleAccess('CLINICIAN', '/escalations')).toBe(false);
+      expect(checkRoleAccess('DISTRICT_SUPERVISOR', '/blackspot')).toBe(true);
+      expect(checkRoleAccess('CLINICAL_ADMINISTRATOR', '/blackspot')).toBe(true);
+      expect(checkRoleAccess('ADMINISTRATOR', '/blackspot')).toBe(true);
+
+      expect(checkRoleAccess('FRONTLINE_WORKER', '/blackspot')).toBe(false);
+      expect(checkRoleAccess('SENDING_FACILITY', '/blackspot')).toBe(false);
+      expect(checkRoleAccess('RECEIVING_FACILITY', '/blackspot')).toBe(false);
+      expect(checkRoleAccess('CLINICIAN', '/blackspot')).toBe(false);
     });
 
     it('frontline workers, facilities, and supervisors can access /follow-ups', () => {

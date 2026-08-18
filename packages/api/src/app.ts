@@ -17,6 +17,7 @@ import { gapsRoutes } from './gaps/gaps.routes';
 import { escalationsRoutes } from './escalations/escalation.routes';
 import { playbooksRoutes } from './playbooks/playbooks.routes';
 import { routingRoutes } from './routing/routing.routes';
+import { blackspotRoutes } from './blackspot/blackspot.routes';
 import { authenticate, authorizeRoles } from './auth/auth.middleware';
 import { SUPERVISOR_ROLES } from './shared/constants';
 import { BLACKSPOT_CONFIG } from './shared/constants';
@@ -137,19 +138,8 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
       // Routing suggestion & confirm-reroute routes (/api/v1/referrals/:id/route-suggestions, /api/v1/referrals/:id/confirm-reroute)
       v1.register(routingRoutes);
 
-      // Supervisor Dashboard Endpoint Stub (/api/v1/blackspot/summary) for RBAC enforcement
-      v1.get(
-        '/blackspot/summary',
-        {
-          preHandler: [authenticate, authorizeRoles(...SUPERVISOR_ROLES)],
-        },
-        async (req, reply) => {
-          return reply.status(200).send({
-            disclaimer: BLACKSPOT_CONFIG.PILOT_DISCLAIMER,
-            blackspots: [],
-          });
-        },
-      );
+      // Blackspot routes (/api/v1/blackspot/summary, /api/v1/blackspot/facilities/:id/signals - Read-only)
+      v1.register(blackspotRoutes);
     },
     { prefix: '/api/v1' },
   );

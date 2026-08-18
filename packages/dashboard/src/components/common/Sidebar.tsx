@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, ListOrdered, CheckSquare, Stethoscope, User, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, ListOrdered, CheckSquare, Stethoscope, User, AlertTriangle, Activity } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const { t } = useLanguage();
@@ -57,6 +57,16 @@ export const Sidebar: React.FC = () => {
           >
             <AlertTriangle size={18} />
             <span>{t('navEscalations')}</span>
+          </NavLink>
+        )}
+
+        {canAccessRoute('/blackspot') && (
+          <NavLink
+            to="/blackspot"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Activity size={18} />
+            <span>{t('navBlackspot')}</span>
           </NavLink>
         )}
 

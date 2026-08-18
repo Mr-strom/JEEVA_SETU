@@ -9,6 +9,7 @@ import { QueuePage } from './pages/QueuePage';
 import { CaseDetailPage } from './pages/CaseDetailPage';
 import { DispositionPage } from './pages/DispositionPage';
 import { SupervisorEscalationsPage } from './pages/SupervisorEscalationsPage';
+import { BlackspotDashboardPage } from './pages/BlackspotDashboardPage';
 import { FollowUpsPage } from './pages/FollowUpsPage';
 
 const ProtectedRoute: React.FC<{ route: string; children: React.ReactNode }> = ({
@@ -48,6 +49,14 @@ const AppLayout: React.FC = () => {
             element={
               <ProtectedRoute route="/escalations">
                 <SupervisorEscalationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/blackspot"
+            element={
+              <ProtectedRoute route="/blackspot">
+                <BlackspotDashboardPage />
               </ProtectedRoute>
             }
           />

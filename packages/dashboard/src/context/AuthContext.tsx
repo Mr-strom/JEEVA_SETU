@@ -114,6 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return ['CLINICIAN', 'CLINICAL_ADMINISTRATOR'].includes(user.role);
       case '/escalations':
         return ['DISTRICT_SUPERVISOR', 'CLINICAL_ADMINISTRATOR', 'ADMINISTRATOR'].includes(user.role);
+      case '/blackspot':
+        return ['DISTRICT_SUPERVISOR', 'CLINICAL_ADMINISTRATOR', 'ADMINISTRATOR'].includes(user.role);
       case '/audit':
         return ['DISTRICT_SUPERVISOR', 'ADMINISTRATOR', 'CLINICAL_ADMINISTRATOR'].includes(user.role);
       default:

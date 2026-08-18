@@ -19,7 +19,9 @@ export const CLINICIAN_ROLES: Role[] = [Role.CLINICIAN, Role.RECEIVING_FACILITY]
 export const FACILITY_ROLES: Role[] = [Role.SENDING_FACILITY, Role.RECEIVING_FACILITY, Role.CLINICIAN];
 
 export const BLACKSPOT_CONFIG = {
-  MIN_CASE_COUNT_THRESHOLD: 5,
+  get MIN_CASE_COUNT_THRESHOLD(): number {
+    return parseInt(process.env.MIN_CASE_COUNT_BLACKSPOT_THRESHOLD || '5', 10);
+  },
   PILOT_DISCLAIMER: 'Pilot-period, synthetic-data only. Aggregated output suppressed below minimum case threshold.',
 };
 
