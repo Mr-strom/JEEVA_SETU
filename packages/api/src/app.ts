@@ -12,6 +12,7 @@ import { dispositionsRoutes } from './dispositions/dispositions.routes';
 import { followUpsRoutes } from './follow-ups/follow-ups.routes';
 import { reportingRoutes } from './reporting/reporting.routes';
 import { auditRoutes } from './audit/audit.routes';
+import { syncRoutes } from './sync/sync.routes';
 import { authenticate, authorizeRoles } from './auth/auth.middleware';
 import { SUPERVISOR_ROLES } from './shared/constants';
 import { BLACKSPOT_CONFIG } from './shared/constants';
@@ -116,6 +117,9 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
 
       // Audit routes (/api/v1/audit/cases/:caseId, /api/v1/audit/events - Read-only)
       v1.register(auditRoutes);
+
+      // Offline Sync routes (/api/v1/sync/batch, /api/v1/sync/changes, /api/v1/sync/ack)
+      v1.register(syncRoutes);
 
       // Supervisor Dashboard Endpoint Stub (/api/v1/blackspot/summary) for RBAC enforcement
       v1.get(

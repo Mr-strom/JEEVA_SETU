@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { SyncStatus, FrontlineReferralDraft, ClientFollowUpTask } from '../types';
+import { outboxManager } from '../sync/outbox';
 
 export const INITIAL_SYNTHETIC_DRAFTS: FrontlineReferralDraft[] = [
   {
@@ -62,9 +63,18 @@ interface SyncContextType {
   syncStatus: SyncStatus;
   referrals: FrontlineReferralDraft[];
   followUps: ClientFollowUpTask[];
-  saveReferral: (draft: Omit<FrontlineReferralDraft, 'localId' | 'createdAt' | 'updatedAt' | 'syncStatus'>, isDraft: boolean) => Promise<FrontlineReferralDraft>;
-  completeFollowUp: (id: string, outcome: 'COMPLETED' | 'PATIENT_NOT_FOUND' | 'PATIENT_REFUSED' | 'REFERRED_ONWARD', notes?: string) => Promise<void>;
-  triggerSync: () => void;
+  activeConflict: { reason: string; serverState: any; nextAvailableAction: string } | null;
+  dismissConflict: () => void;
+  saveReferral: (
+    draft: Omit<FrontlineReferralDraft, 'localId' | 'createdAt' | 'updatedAt' | 'syncStatus'>,
+    isDraft: boolean,
+  ) => Promise<FrontlineReferralDraft>;
+  completeFollowUp: (
+    id: string,
+    outcome: 'COMPLETED' | 'PATIENT_NOT_FOUND' | 'PATIENT_REFUSED' | 'REFERRED_ONWARD',
+    notes?: string,
+  ) => Promise<void>;
+  triggerSync: () => Promise<void>;
   setSyncStatus: (status: SyncStatus) => void;
 }
 
@@ -85,6 +95,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : INITIAL_SYNTHETIC_FOLLOWUPS;
   });
 
+  const [activeConflict, setActiveConflict] = useState<{
+    reason: string;
+    serverState: any;
+    nextAvailableAction: string;
+  } | null>(null);
+
   useEffect(() => {
     localStorage.setItem('jeevasetu_frontline_referrals', JSON.stringify(referrals));
   }, [referrals]);
@@ -97,14 +113,110 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('jeevasetu_sync_status', syncStatus);
   }, [syncStatus]);
 
+  const dismissConflict = () => {
+    setActiveConflict(null);
+  };
+
+  /**
+   * Real end-to-end sync trigger against /api/v1/sync/batch
+   */
+  const triggerSync = useCallback(async () => {
+    const pending = outboxManager.getPending();
+    if (pending.length === 0) {
+      setSyncStatus('SYNCHRONISED');
+      return;
+    }
+
+    setSyncStatus('WAITING_TO_SYNC');
+
+    try {
+      const response = await fetch('/api/v1/sync/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer synthetic-demo-jwt-token',
+        },
+        body: JSON.stringify({
+          mutations: pending.map((item) => ({
+            mutationId: item.mutationId,
+            operationType: item.operationType,
+            localCaseId: item.localCaseId,
+            payload: item.payload,
+            clientTimestamp: item.clientTimestamp,
+            idempotencyKey: item.idempotencyKey,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Sync HTTP error ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      // Process applied
+      if (result.applied) {
+        result.applied.forEach((a: any) => {
+          outboxManager.markApplied(a.mutationId);
+          if (a.localCaseId && a.serverCaseId) {
+            setReferrals((prev) =>
+              prev.map((r) =>
+                r.localId === a.localCaseId
+                  ? { ...r, caseId: a.result.caseId || a.serverCaseId, syncStatus: 'SYNCHRONISED' }
+                  : r,
+              ),
+            );
+          }
+        });
+      }
+
+      // Process already_applied
+      if (result.alreadyApplied) {
+        result.alreadyApplied.forEach((aa: any) => {
+          outboxManager.markAlreadyApplied(aa.mutationId);
+        });
+      }
+
+      // Process conflicts (surface to user immediately - no silent overwrite)
+      if (result.conflicts && result.conflicts.length > 0) {
+        const firstConflict = result.conflicts[0];
+        outboxManager.markConflict(firstConflict.mutationId, firstConflict.conflict);
+        setActiveConflict(firstConflict.conflict);
+        setSyncStatus('SYNC_FAILED');
+        return;
+      }
+
+      // Process rejected
+      if (result.rejected && result.rejected.length > 0) {
+        result.rejected.forEach((rej: any) => {
+          outboxManager.markFailed(rej.mutationId, rej.error);
+        });
+        setSyncStatus('SYNC_FAILED');
+        return;
+      }
+
+      setSyncStatus('SYNCHRONISED');
+    } catch (err: any) {
+      console.warn('Sync attempt failed (offline or server error)', err);
+      // Mark failures with retry count in outbox
+      pending.forEach((item) => {
+        outboxManager.markFailed(item.mutationId, err.message || 'Network error');
+      });
+      setSyncStatus('SYNC_FAILED');
+    }
+  }, []);
+
   const saveReferral = async (
     draft: Omit<FrontlineReferralDraft, 'localId' | 'createdAt' | 'updatedAt' | 'syncStatus'>,
     isDraft: boolean,
   ): Promise<FrontlineReferralDraft> => {
     const now = new Date().toISOString();
+    const localId = `loc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const idempotencyKey = `idem-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+
     const newDraft: FrontlineReferralDraft = {
       ...draft,
-      localId: `loc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      localId,
       caseId: `JS-2026-F${Math.floor(100 + Math.random() * 900)}`,
       isDraft,
       syncStatus: isDraft ? 'SAVED_LOCALLY' : 'WAITING_TO_SYNC',
@@ -113,7 +225,24 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setReferrals((prev) => [newDraft, ...prev]);
-    setSyncStatus(isDraft ? 'SAVED_LOCALLY' : 'WAITING_TO_SYNC');
+
+    if (!isDraft) {
+      // Enqueue to persistent outbox
+      outboxManager.enqueue({
+        mutationId: `mut-${Date.now()}`,
+        operationType: 'CREATE_REFERRAL',
+        localCaseId: localId,
+        payload: { ...draft, isDraft: false },
+        idempotencyKey,
+      });
+
+      setSyncStatus('WAITING_TO_SYNC');
+      // Proactively trigger sync in background
+      triggerSync().catch(() => {});
+    } else {
+      setSyncStatus('SAVED_LOCALLY');
+    }
+
     return newDraft;
   };
 
@@ -122,6 +251,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     outcome: 'COMPLETED' | 'PATIENT_NOT_FOUND' | 'PATIENT_REFUSED' | 'REFERRED_ONWARD',
     notes?: string,
   ): Promise<void> => {
+    const idempotencyKey = `idem-fup-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
     setFollowUps((prev) =>
       prev.map((f) =>
         f.id === id
@@ -135,18 +266,17 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : f,
       ),
     );
-    setSyncStatus('WAITING_TO_SYNC');
-  };
 
-  // Stub sync trigger (cycles states for demo & testing verification)
-  const triggerSync = () => {
-    if (syncStatus === 'WAITING_TO_SYNC' || syncStatus === 'SAVED_LOCALLY') {
-      setSyncStatus('SYNCHRONISED');
-    } else if (syncStatus === 'SYNCHRONISED') {
-      setSyncStatus('SYNC_FAILED');
-    } else {
-      setSyncStatus('SAVED_LOCALLY');
-    }
+    // Enqueue mutation to outbox
+    outboxManager.enqueue({
+      mutationId: `mut-fup-${Date.now()}`,
+      operationType: 'COMPLETE_FOLLOW_UP',
+      payload: { taskId: id, outcome, notes },
+      idempotencyKey,
+    });
+
+    setSyncStatus('WAITING_TO_SYNC');
+    triggerSync().catch(() => {});
   };
 
   return (
@@ -155,6 +285,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         syncStatus,
         referrals,
         followUps,
+        activeConflict,
+        dismissConflict,
         saveReferral,
         completeFollowUp,
         triggerSync,
