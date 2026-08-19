@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { ReferralCase, CapacityReasonCode, DispositionCategory } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { CaseJourneyTracker } from '../components/CaseJourneyTracker';
 import {
   ArrowLeft,
   CheckCircle,
@@ -264,6 +265,9 @@ export const CaseDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Case Journey Horizontal Step Tracker & Chronological Event Log */}
+      <CaseJourneyTracker referral={referral} />
 
       {/* Main Details Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>

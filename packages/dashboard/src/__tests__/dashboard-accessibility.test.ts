@@ -57,6 +57,45 @@ describe('Phase 10 Module 2: Operations Dashboard Accessibility & High-Contrast 
         expect(translations.kn[key].length).toBeGreaterThan(0);
       });
     });
+
+    it('case journey tracker steps and milestone labels have complete bilingual strings', () => {
+      const journeyKeys: TranslationKey[] = [
+        'journeyTitle',
+        'journeySubtitle',
+        'journeyStepSubmitted',
+        'journeyStepSubmittedKn',
+        'journeyStepAccepted',
+        'journeyStepAcceptedKn',
+        'journeyStepInTransit',
+        'journeyStepInTransitKn',
+        'journeyStepArrived',
+        'journeyStepArrivedKn',
+        'journeyStepTreated',
+        'journeyStepTreatedKn',
+        'journeyStepDischarged',
+        'journeyStepDischargedKn',
+        'journeyStepFollowUp',
+        'journeyStepFollowUpKn',
+        'journeyStepClosed',
+        'journeyStepClosedKn',
+        'journeyStepRejected',
+        'journeyStepRejectedKn',
+        'journeyStepRerouted',
+        'journeyStepReroutedKn',
+        'journeyStepGap',
+        'journeyStepGapKn',
+        'journeyGapClassificationLabel',
+        'journeyGapClassificationLabelKn',
+        'journeyChronologicalLog',
+        'journeyNoEvents',
+      ];
+
+      journeyKeys.forEach((key) => {
+        expect(translations.en[key]).toBeDefined();
+        expect(translations.kn[key]).toBeDefined();
+        expect(translations.kn[key].length).toBeGreaterThan(0);
+      });
+    });
   });
 
   describe('2. Persistent Safety Disclaimer Prominence', () => {
