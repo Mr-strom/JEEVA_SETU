@@ -2,11 +2,14 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { SyncProvider, useSync } from './context/SyncContext';
+import { DemoRoleProvider } from './context/DemoRoleContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
+import { FloatingDemoBadge } from './components/FloatingDemoBadge';
 import { NewReferralPage } from './pages/NewReferralPage';
 import { WorkerQueuePage } from './pages/WorkerQueuePage';
 import { FollowUpTasksPage } from './pages/FollowUpTasksPage';
+import { DemoModePage } from './pages/DemoModePage';
 import { AlertTriangle, X } from 'lucide-react';
 
 const ConflictModal: React.FC = () => {
@@ -88,10 +91,12 @@ const AppLayout: React.FC = () => {
         <div className="mobile-app-wrapper" lang={language}>
           <Header />
           <ConflictModal />
+          <FloatingDemoBadge />
           <Routes>
             <Route path="/" element={<NewReferralPage />} />
             <Route path="/queue" element={<WorkerQueuePage />} />
             <Route path="/follow-ups" element={<FollowUpTasksPage />} />
+            <Route path="/demomode" element={<DemoModePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <BottomNav />
@@ -106,7 +111,9 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <LanguageProvider>
         <SyncProvider>
-          <AppLayout />
+          <DemoRoleProvider>
+            <AppLayout />
+          </DemoRoleProvider>
         </SyncProvider>
       </LanguageProvider>
     </BrowserRouter>

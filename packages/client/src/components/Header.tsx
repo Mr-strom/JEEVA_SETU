@@ -1,11 +1,13 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useSync } from '../context/SyncContext';
+import { useDemoRole } from '../context/DemoRoleContext';
 import { Globe, RefreshCw, Check, Clock, AlertCircle, HardDrive } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
   const { syncStatus, triggerSync } = useSync();
+  const { currentRole, isDemoMode } = useDemoRole();
 
   const toggleLanguage = () => {
     setLanguage(language === 'kn' ? 'en' : 'kn');
@@ -28,6 +30,10 @@ export const Header: React.FC = () => {
     return t(`sync_${syncStatus}` as any) || syncStatus;
   };
 
+  const displayFacility = isDemoMode
+    ? `${currentRole.facility} — ${currentRole.district}`
+    : t('workerFacility');
+
   return (
     <header className="app-header">
       <div className="header-top">
@@ -35,7 +41,7 @@ export const Header: React.FC = () => {
           <div className="flag-badge">JS</div>
           <div className="app-title-text">
             <h1>{t('appTitle')}</h1>
-            <span>{t('workerFacility')}</span>
+            <span>{displayFacility}</span>
           </div>
         </div>
 

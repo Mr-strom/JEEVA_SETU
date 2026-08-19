@@ -30,6 +30,10 @@ JeevaSetu Karnataka establishes a clinician-supervised maternal referral safety 
 - **District Supervisor**: `supervisor.mysuru@jeevasetu.internal` (`+91-9480000005`, Mysuru District RCH)
 - **State Administrator**: `admin.karnataka@jeevasetu.internal` (`+91-9480000006`, State Directorate)
 
+> **Demo Persona Switcher (`/demomode`) — Dev-Only Presentation Aid**:
+> During live judge evaluation, presenters can navigate to `http://localhost:5173/demomode` (or tap the floating role badge at the bottom of the client screen) to switch instantly between all 5 seeded demo accounts (ASHA, Hospital Triage, Obstetrician, District Supervisor, and State Admin).
+> *Note: This route is strictly a development/demonstration aid (`import.meta.env.DEV` or `?demo=1`) and is excluded from standard production frontline workflows.*
+
 ---
 
 ## 3. Demonstration Flow Scripts
