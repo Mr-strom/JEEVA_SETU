@@ -14,14 +14,18 @@ export const Header: React.FC = () => {
   const getSyncIcon = () => {
     switch (syncStatus) {
       case 'SAVED_LOCALLY':
-        return <HardDrive size={14} />;
+        return <HardDrive size={15} />;
       case 'WAITING_TO_SYNC':
-        return <Clock size={14} />;
+        return <Clock size={15} />;
       case 'SYNCHRONISED':
-        return <Check size={14} />;
+        return <Check size={15} />;
       case 'SYNC_FAILED':
-        return <AlertCircle size={14} />;
+        return <AlertCircle size={15} />;
     }
+  };
+
+  const getStatusText = () => {
+    return t(`sync_${syncStatus}` as any) || syncStatus;
   };
 
   return (
@@ -40,30 +44,32 @@ export const Header: React.FC = () => {
           aria-label={language === 'kn' ? 'Switch to English' : 'ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಿ'}
           style={{
             background: 'var(--bg-app)',
-            border: '1px solid var(--border-app)',
+            border: '1.5px solid var(--border-app)',
             color: 'var(--text-main)',
-            padding: '6px 12px',
-            borderRadius: '16px',
-            fontSize: '13px',
-            fontWeight: 700,
+            padding: '8px 14px',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: 800,
             cursor: 'pointer',
+            minHeight: '44px',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '8px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
           }}
         >
-          <Globe size={14} />
+          <Globe size={16} />
           <span>{language === 'kn' ? 'English' : 'ಕನ್ನಡ'}</span>
         </button>
       </div>
 
-      {/* Persistent Sync Status Pill Banner */}
+      {/* 3-State Status Strip Banner */}
       <div
         className={`sync-banner sync-${syncStatus}`}
         role="status"
         aria-live="polite"
         tabIndex={0}
-        aria-label={`Sync Status: ${t(`sync_${syncStatus}` as any) || syncStatus}`}
+        aria-label={`Sync Status: ${getStatusText()}`}
         onClick={triggerSync}
         onKeyDown={(e) => {
           if (e.key === ' ' || e.key === 'Enter') {
@@ -71,13 +77,14 @@ export const Header: React.FC = () => {
             triggerSync();
           }
         }}
-        title="Tap to simulate sync state"
+        title="Tap to trigger immediate server sync"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="sync-pulse-dot" />
           {getSyncIcon()}
-          <span>{t(`sync_${syncStatus}` as any) || syncStatus}</span>
+          <span>{getStatusText()}</span>
         </div>
-        <RefreshCw size={13} />
+        <RefreshCw size={14} style={{ opacity: 0.85 }} />
       </div>
     </header>
   );

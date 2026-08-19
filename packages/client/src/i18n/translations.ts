@@ -78,6 +78,24 @@ export const translations = {
     confirmVisitButton: 'Submit Visit Record',
     cancel: 'Cancel',
 
+    // Multi-Step Form Stepper & Review
+    stepMotherProfile: '1. Mother Profile',
+    stepRisksSymptoms: '2. Risks & Symptoms',
+    stepHospitalTransport: '3. Hospital & Transport',
+    stepReviewSend: '4. Review & Send',
+    stepNext: 'Next Step',
+    stepBack: 'Back',
+    stepEdit: 'Edit',
+    reviewTitle: 'Review Referral Details',
+    reviewSubtitle: 'Confirm all maternal information before dispatching handoff alert',
+    reviewSummaryHeading: 'Summary of Handoff',
+    noRisksSelected: 'No risk signs selected',
+    ambulanceRequested: '108 Emergency Ambulance Requested',
+    ambulanceNotRequested: 'Self / Local Vehicle Transport',
+    sync_SYNCING: 'Syncing with server...',
+    stepProgress: 'Step',
+    ofSteps: 'of',
+
     // Language Toggle
     languageToggle: 'ಕನ್ನಡ',
   },
@@ -93,6 +111,7 @@ export const translations = {
     sync_WAITING_TO_SYNC: 'ಸರ್ವರ್‌ಗೆ ಕಳುಹಿಸಲು ಬಾಕಿ ಇದೆ (ಆಫ್‌ಲೈನ್)',
     sync_SYNCHRONISED: 'ಸರ್ವರ್‌ನೊಂದಿಗೆ ಸಿಂಕ್ ಆಗಿದೆ',
     sync_SYNC_FAILED: 'ಸಿಂಕ್ ವಿಫಲವಾಗಿದೆ (ಮರುಪ್ರಯತ್ನಿಸಿ)',
+    sync_SYNCING: 'ಸರ್ವರ್‌ನೊಂದಿಗೆ ಸಿಂಕ್ ಮಾಡಲಾಗುತ್ತಿದೆ...',
     syncSubtitle: 'ನೆಟ್‌ವರ್ಕ್ ಇಲ್ಲದಿದ್ದರೂ ನಿಮ್ಮ ಫೋನ್‌ನಲ್ಲಿ ಮಾಹಿತಿ ಸುರಕ್ಷಿತವಾಗಿದೆ',
 
     // Navigation
@@ -134,6 +153,23 @@ export const translations = {
     saveDraftSecondary: 'ಡ್ರಾಫ್ಟ್ ಆಗಿ ಉಳಿಸಿ',
     validationError: 'ದಯವಿಟ್ಟು ಆರ್‌ಸಿಎಚ್ ಐಡಿ ಮತ್ತು ಕನಿಷ್ಠ ಒಂದು ಅಪಾಯದ ಲಕ್ಷಣವನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
     referralCreatedSuccess: 'ಉಲ್ಲೇಖ ಉಳಿಸಲಾಗಿದೆ! ಆಸ್ಪತ್ರೆಗೆ ಮಾಹಿತಿ ತಲುಪಿದೆ.',
+
+    // Multi-Step Form Stepper & Review
+    stepMotherProfile: '೧. ತಾಯಿಯ ವಿವರ',
+    stepRisksSymptoms: '೨. ಅಪಾಯ ಮತ್ತು ಲಕ್ಷಣಗಳು',
+    stepHospitalTransport: '೩. ಆಸ್ಪತ್ರೆ ಮತ್ತು ಸಾರಿಗೆ',
+    stepReviewSend: '೪. ಪರಿಶೀಲಿಸಿ ಕಳುಹಿಸಿ',
+    stepNext: 'ಮುಂದಿನ ಹಂತ',
+    stepBack: 'ಹಿಂದೆ',
+    stepEdit: 'ಬದಲಾಯಿಸಿ',
+    reviewTitle: 'ಉಲ್ಲೇಖ ಸಾರಾಂಶ ಪರಿಶೀಲಿಸಿ',
+    reviewSubtitle: 'ಆಸ್ಪತ್ರೆಗೆ ಕಳುಹಿಸುವ ಮೊದಲು ವಿವರಗಳನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ',
+    reviewSummaryHeading: 'ಹಸ್ತಾಂತರ ವಿವರಗಳ ಸಾರಾಂಶ',
+    noRisksSelected: 'ಯಾವುದೇ ಅಪಾಯದ ಲಕ್ಷಣ ಆಯ್ಕೆಯಾಗಿಲ್ಲ',
+    ambulanceRequested: '೧೦೮ ಆಂಬ್ಯುಲೆನ್ಸ್ ವಿನಂತಿಸಲಾಗಿದೆ',
+    ambulanceNotRequested: 'ಸ್ವಂತ / ಸ್ಥಳೀಯ ಸಾರಿಗೆ',
+    stepProgress: 'ಹಂತ',
+    ofSteps: '/',
 
     // Worker Queue
     queueTitle: 'ನನ್ನ ಉಲ್ಲೇಖಿತ ಪ್ರಕರಣಗಳು',

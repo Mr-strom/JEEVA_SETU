@@ -52,17 +52,17 @@ const ConflictModal: React.FC = () => {
           </button>
         </div>
 
-        <p style={{ fontSize: '13px', color: 'var(--text-main)', marginBottom: '12px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-main)', marginBottom: '12px' }}>
           {activeConflict.reason}
         </p>
 
-        <div style={{ backgroundColor: 'var(--bg-app)', padding: '10px', borderRadius: '6px', fontSize: '12px', color: 'var(--text-sub)', marginBottom: '16px', border: '1px solid var(--border-app)' }}>
+        <div style={{ backgroundColor: 'var(--bg-app)', padding: '10px', borderRadius: '6px', fontSize: '13px', color: 'var(--text-sub)', marginBottom: '16px', border: '1px solid var(--border-app)' }}>
           <div style={{ fontWeight: 600, color: 'var(--karnataka-gold)', marginBottom: '4px' }}>Current Server State:</div>
           <div>Status: {activeConflict.serverState?.status || activeConflict.serverState?.outcome || 'Updated'}</div>
           <div>Last Modified: {activeConflict.serverState?.updatedAt || activeConflict.serverState?.completedAt || 'Recently'}</div>
         </div>
 
-        <button onClick={dismissConflict} className="primary-btn" style={{ minHeight: '44px', padding: '10px' }}>
+        <button onClick={dismissConflict} className="primary-btn" style={{ minHeight: '48px', padding: '10px' }}>
           <span>{activeConflict.nextAvailableAction.replace(/_/g, ' ')}</span>
         </button>
       </div>
@@ -74,16 +74,29 @@ const AppLayout: React.FC = () => {
   const { language } = useLanguage();
 
   return (
-    <div className="mobile-app-wrapper" lang={language}>
-      <Header />
-      <ConflictModal />
-      <Routes>
-        <Route path="/" element={<NewReferralPage />} />
-        <Route path="/queue" element={<WorkerQueuePage />} />
-        <Route path="/follow-ups" element={<FollowUpTasksPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <BottomNav />
+    <div className="phone-device-container">
+      <div className="phone-chassis">
+        {/* Top Speaker & Camera Cutout for Realistic Phone Look on Desktop */}
+        <div className="phone-notch-bar" aria-hidden="true">
+          <div className="phone-notch-pill">
+            <span className="phone-speaker" />
+            <span className="phone-lens" />
+          </div>
+        </div>
+
+        {/* Inner Phone Viewport */}
+        <div className="mobile-app-wrapper" lang={language}>
+          <Header />
+          <ConflictModal />
+          <Routes>
+            <Route path="/" element={<NewReferralPage />} />
+            <Route path="/queue" element={<WorkerQueuePage />} />
+            <Route path="/follow-ups" element={<FollowUpTasksPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <BottomNav />
+        </div>
+      </div>
     </div>
   );
 };
