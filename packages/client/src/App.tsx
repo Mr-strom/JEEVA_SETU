@@ -6,6 +6,7 @@ import { DemoRoleProvider } from './context/DemoRoleContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { FloatingDemoBadge } from './components/FloatingDemoBadge';
+import { OfflineDemoBanner } from './components/OfflineDemoBanner';
 import { NewReferralPage } from './pages/NewReferralPage';
 import { WorkerQueuePage } from './pages/WorkerQueuePage';
 import { FollowUpTasksPage } from './pages/FollowUpTasksPage';
@@ -90,6 +91,7 @@ const AppLayout: React.FC = () => {
         {/* Inner Phone Viewport */}
         <div className="mobile-app-wrapper" lang={language}>
           <Header />
+          <OfflineDemoBanner />
           <ConflictModal />
           <FloatingDemoBadge />
           <Routes>

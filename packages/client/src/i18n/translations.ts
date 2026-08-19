@@ -96,6 +96,13 @@ export const translations = {
     stepProgress: 'Step',
     ofSteps: 'of',
 
+    // Offline Simulation (Demo Mode)
+    simulateOffline: 'Simulate Offline',
+    simulateOfflineDesc: 'Queues all handoff mutations in local outbox without contacting server',
+    offlineBannerTitle: 'Offline demo mode — mutations queued locally',
+    itemsQueued: 'items queued',
+    liveSyncRestored: 'Network restored — drained outbox to server',
+
     // Language Toggle
     languageToggle: 'ಕನ್ನಡ',
   },
@@ -193,6 +200,13 @@ export const translations = {
     visitNotesLabel: 'ಆರೋಗ್ಯ ಟಿಪ್ಪಣಿ (ಬಿಪಿ, ಜ್ವರ, ಎದೆಹಾಲು ಕುಡಿಸುವಿಕೆ)',
     confirmVisitButton: 'ಭೇಟಿ ದಾಖಲೆ ಸಲ್ಲಿಸಿ',
     cancel: 'ರದ್ದುಮಾಡಿ',
+
+    // Offline Simulation (Demo Mode)
+    simulateOffline: 'ಆಫ್‌ಲೈನ್ ಸಿಮ್ಯುಲೇಶನ್',
+    simulateOfflineDesc: 'ಸರ್ವರ್ ಸಂಪರ್ಕವಿಲ್ಲದೆ ಎಲ್ಲಾ ಮಾಹಿತಿಯನ್ನು ಮೊಬೈಲ್‌ನಲ್ಲೇ ಸಂಗ್ರಹಿಸುತ್ತದೆ',
+    offlineBannerTitle: 'ಆಫ್‌ಲೈನ್ ಡೆಮೊ ಮೋಡ್ — ಮಾಹಿತಿ ಮೊಬೈಲ್‌ನಲ್ಲಿ ಸುರಕ್ಷಿತವಾಗಿದೆ',
+    itemsQueued: 'ಬಾಕಿ ಉಳಿದಿವೆ',
+    liveSyncRestored: 'ನೆಟ್‌ವರ್ಕ್ ಮರುಸ್ಥಾಪಿಸಲಾಗಿದೆ — ಮಾಹಿತಿ ಸಿಂಕ್ ಆಗಿದೆ',
 
     // Language Toggle
     languageToggle: 'English',

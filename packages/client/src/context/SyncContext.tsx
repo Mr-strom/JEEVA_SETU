@@ -76,11 +76,19 @@ interface SyncContextType {
   ) => Promise<void>;
   triggerSync: () => Promise<void>;
   setSyncStatus: (status: SyncStatus) => void;
+  isOfflineSimulated: boolean;
+  setIsOfflineSimulated: (simulated: boolean) => void;
+  toggleOfflineSimulation: () => void;
+  pendingCount: number;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
 
 export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isOfflineSimulated, setIsOfflineSimulatedState] = useState<boolean>(() => {
+    return localStorage.getItem('jeevasetu_simulate_offline') === 'true';
+  });
+
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => {
     return (localStorage.getItem('jeevasetu_sync_status') as SyncStatus) || 'SAVED_LOCALLY';
   });
@@ -101,6 +109,14 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     nextAvailableAction: string;
   } | null>(null);
 
+  const [pendingCount, setPendingCount] = useState<number>(() => {
+    return outboxManager.getPending().length;
+  });
+
+  const updatePendingCount = useCallback(() => {
+    setPendingCount(outboxManager.getPending().length);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('jeevasetu_frontline_referrals', JSON.stringify(referrals));
   }, [referrals]);
@@ -113,6 +129,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('jeevasetu_sync_status', syncStatus);
   }, [syncStatus]);
 
+  useEffect(() => {
+    localStorage.setItem('jeevasetu_simulate_offline', String(isOfflineSimulated));
+  }, [isOfflineSimulated]);
+
   const dismissConflict = () => {
     setActiveConflict(null);
   };
@@ -121,6 +141,19 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Real end-to-end sync trigger against /api/v1/sync/batch
    */
   const triggerSync = useCallback(async () => {
+    updatePendingCount();
+
+    if (isOfflineSimulated) {
+      console.log('[SyncContext] Offline simulation active — mutations held in local outbox');
+      const currentPending = outboxManager.getPending();
+      if (currentPending.length > 0) {
+        setSyncStatus('WAITING_TO_SYNC');
+      } else {
+        setSyncStatus('SAVED_LOCALLY');
+      }
+      return;
+    }
+
     const pending = outboxManager.getPending();
     if (pending.length === 0) {
       setSyncStatus('SYNCHRONISED');
@@ -162,7 +195,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setReferrals((prev) =>
               prev.map((r) =>
                 r.localId === a.localCaseId
-                  ? { ...r, caseId: a.result.caseId || a.serverCaseId, syncStatus: 'SYNCHRONISED' }
+                  ? { ...r, caseId: a.result?.caseId || a.serverCaseId, syncStatus: 'SYNCHRONISED' }
                   : r,
               ),
             );
@@ -183,6 +216,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         outboxManager.markConflict(firstConflict.mutationId, firstConflict.conflict);
         setActiveConflict(firstConflict.conflict);
         setSyncStatus('SYNC_FAILED');
+        updatePendingCount();
         return;
       }
 
@@ -192,10 +226,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
           outboxManager.markFailed(rej.mutationId, rej.error);
         });
         setSyncStatus('SYNC_FAILED');
+        updatePendingCount();
         return;
       }
 
       setSyncStatus('SYNCHRONISED');
+      updatePendingCount();
     } catch (err: any) {
       console.warn('Sync attempt failed (offline or server error)', err);
       // Mark failures with retry count in outbox
@@ -203,8 +239,28 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         outboxManager.markFailed(item.mutationId, err.message || 'Network error');
       });
       setSyncStatus('SYNC_FAILED');
+      updatePendingCount();
     }
-  }, []);
+  }, [isOfflineSimulated, updatePendingCount]);
+
+  const setIsOfflineSimulated = useCallback(
+    (simulated: boolean) => {
+      setIsOfflineSimulatedState(simulated);
+      if (!simulated) {
+        // Toggled back to online -> trigger real sync drain
+        setTimeout(() => {
+          triggerSync().catch(() => {});
+        }, 100);
+      } else {
+        setSyncStatus('WAITING_TO_SYNC');
+      }
+    },
+    [triggerSync],
+  );
+
+  const toggleOfflineSimulation = useCallback(() => {
+    setIsOfflineSimulated(!isOfflineSimulated);
+  }, [isOfflineSimulated, setIsOfflineSimulated]);
 
   const saveReferral = async (
     draft: Omit<FrontlineReferralDraft, 'localId' | 'createdAt' | 'updatedAt' | 'syncStatus'>,
@@ -237,7 +293,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       setSyncStatus('WAITING_TO_SYNC');
-      // Proactively trigger sync in background
+      updatePendingCount();
+
+      // Proactively trigger sync in background (if online)
       triggerSync().catch(() => {});
     } else {
       setSyncStatus('SAVED_LOCALLY');
@@ -276,6 +334,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     setSyncStatus('WAITING_TO_SYNC');
+    updatePendingCount();
     triggerSync().catch(() => {});
   };
 
@@ -291,6 +350,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         completeFollowUp,
         triggerSync,
         setSyncStatus,
+        isOfflineSimulated,
+        setIsOfflineSimulated,
+        toggleOfflineSimulation,
+        pendingCount,
       }}
     >
       {children}

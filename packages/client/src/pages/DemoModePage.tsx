@@ -1,12 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDemoRole, DEMO_ACCOUNTS, DemoAccount } from '../context/DemoRoleContext';
+import { useSync } from '../context/SyncContext';
 import { useLanguage } from '../context/LanguageContext';
-import { ArrowRight, Shield, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Shield, Sparkles, CheckCircle2, Wifi, WifiOff, Database } from 'lucide-react';
 
 export const DemoModePage: React.FC = () => {
   const { currentRole, switchRole } = useDemoRole();
-  const { language } = useLanguage();
+  const { isOfflineSimulated, setIsOfflineSimulated, pendingCount } = useSync();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSelectRole = (account: DemoAccount) => {
@@ -36,17 +38,118 @@ export const DemoModePage: React.FC = () => {
           }}
         >
           <Sparkles size={14} />
-          <span>Judge Presentation • Demo Switcher</span>
+          <span>Judge Presentation • Demo Controls</span>
         </div>
         <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#FFFFFF', marginBottom: '6px' }}>
-          Select Live Demo Persona
+          Live Demo Control Center
         </h2>
         <p style={{ fontSize: '14px', color: '#94A3B8', maxWidth: '380px', margin: '0 auto' }}>
-          Switch viewpoints instantly to experience closed-loop handoffs from frontline to triage to supervisor.
+          Switch viewpoints instantly or simulate offline conditions to demonstrate resilient frontline handoffs.
         </p>
       </div>
 
+      {/* Offline Network Simulation Control Card */}
+      <div
+        style={{
+          backgroundColor: isOfflineSimulated ? 'rgba(120, 53, 15, 0.35)' : '#0F172A',
+          border: isOfflineSimulated ? '2px solid #F59E0B' : '1.5px solid #334155',
+          borderRadius: '16px',
+          padding: '18px',
+          marginBottom: '20px',
+          boxShadow: isOfflineSimulated ? '0 0 20px rgba(245, 158, 11, 0.3)' : '0 2px 8px rgba(0,0,0,0.3)',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                backgroundColor: isOfflineSimulated ? '#78350F' : '#1E293B',
+                color: isOfflineSimulated ? '#FDE047' : '#94A3B8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: isOfflineSimulated ? '1.5px solid #F59E0B' : '1px solid #334155',
+              }}
+            >
+              {isOfflineSimulated ? <WifiOff size={20} /> : <Wifi size={20} />}
+            </div>
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: '#FFFFFF' }}>
+                {t('simulateOffline')}
+              </div>
+              <div style={{ fontSize: '12px', color: isOfflineSimulated ? '#FDE047' : '#94A3B8', fontWeight: 600 }}>
+                {isOfflineSimulated ? 'Simulated Offline Mode Active' : 'Normal Live Connected Mode'}
+              </div>
+            </div>
+          </div>
+
+          {/* Toggle Switch */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isOfflineSimulated}
+            onClick={() => setIsOfflineSimulated(!isOfflineSimulated)}
+            style={{
+              width: '56px',
+              height: '32px',
+              borderRadius: '16px',
+              backgroundColor: isOfflineSimulated ? '#F59E0B' : '#334155',
+              border: 'none',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'background-color 0.2s',
+              padding: '2px',
+            }}
+          >
+            <span
+              style={{
+                display: 'block',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: '#FFFFFF',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                transform: isOfflineSimulated ? 'translateX(24px)' : 'translateX(0px)',
+                transition: 'transform 0.2s',
+              }}
+            />
+          </button>
+        </div>
+
+        <p style={{ fontSize: '13px', color: '#CBD5E1', lineHeight: 1.45, marginBottom: '12px' }}>
+          {t('simulateOfflineDesc')}
+        </p>
+
+        {isOfflineSimulated && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#070C18',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              border: '1px solid #F59E0B60',
+              fontSize: '13px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FDE047', fontWeight: 700 }}>
+              <Database size={15} />
+              <span>Outbox Queue: {pendingCount} {t('itemsQueued')}</span>
+            </div>
+            <span style={{ fontSize: '11px', color: '#94A3B8' }}>Drains idempotently when toggled OFF</span>
+          </div>
+        )}
+      </div>
+
       {/* 5 Demo Persona Cards */}
+      <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#FBBF24', marginBottom: '12px' }}>
+        Select Presentation Persona
+      </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {DEMO_ACCOUNTS.map((account) => {
           const isSelected = currentRole.id === account.id;
