@@ -42,5 +42,7 @@ prisma/migrations/
 *.tgz
 .cache/
 
-#demo images
+# Demo local data
 demo-shots/
+pgdata-demo/
+start-pg.sh

@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('FRONTLINE_WORKER', 'SENDING_FACILITY', 'RECEIVING_FACILITY', 'CLINICIAN', 'DISTRICT_SUPERVISOR', 'STATE_OFFICER', 'ADMINISTRATOR');
+CREATE TYPE "Role" AS ENUM ('FRONTLINE_WORKER', 'SENDING_FACILITY', 'RECEIVING_FACILITY', 'CLINICIAN', 'DISTRICT_SUPERVISOR', 'STATE_OFFICER', 'ADMINISTRATOR', 'CLINICAL_ADMINISTRATOR');
 
 -- CreateEnum
 CREATE TYPE "CaseStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'ACKNOWLEDGEMENT_PENDING', 'ACCEPTED', 'REDIRECTED', 'REJECTED', 'REDIRECT_SUGGESTED', 'REROUTED', 'IN_TRANSIT', 'ARRIVED', 'CLINICAL_DISPOSITION_RECORDED', 'DISCHARGED', 'FOLLOW_UP_DUE', 'FOLLOW_UP_COMPLETED', 'FOLLOW_UP_ESCALATED', 'CLOSED');
@@ -70,12 +70,13 @@ CREATE TABLE "Facility" (
 CREATE TABLE "PatientReference" (
     "id" TEXT NOT NULL,
     "externalId" TEXT NOT NULL,
-    "name" TEXT,
+    "nameHash" TEXT NOT NULL,
     "age" INTEGER,
     "gravida" INTEGER,
     "parity" INTEGER,
     "lmp" TIMESTAMP(3),
     "edd" TIMESTAMP(3),
+    "riskFlags" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -134,7 +135,7 @@ CREATE TABLE "CapacitySignal" (
     "reportedById" TEXT NOT NULL,
     "unitId" TEXT,
     "serviceName" TEXT,
-    "note" TEXT,
+    "detail" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "CapacitySignal_pkey" PRIMARY KEY ("id")
@@ -149,13 +150,11 @@ CREATE TABLE "GapEvent" (
     "causeClass" "GapCauseClass" NOT NULL,
     "evidence" JSONB NOT NULL DEFAULT '[]',
     "classificationLabel" TEXT NOT NULL DEFAULT 'likely cause, pending supervisor review',
-    "confidenceScore" DOUBLE PRECISION NOT NULL DEFAULT 0.8,
     "status" TEXT NOT NULL DEFAULT 'PENDING_REVIEW',
+    "overrideUserId" TEXT,
     "overrideReason" TEXT,
-    "overriddenById" TEXT,
     "overriddenAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "GapEvent_pkey" PRIMARY KEY ("id")
 );
@@ -183,12 +182,10 @@ CREATE TABLE "Escalation" (
     "playbookId" TEXT NOT NULL,
     "status" "EscalationStatus" NOT NULL DEFAULT 'OPEN',
     "assigneeId" TEXT,
+    "currentStepIndex" INTEGER NOT NULL DEFAULT 0,
     "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "acknowledgedAt" TIMESTAMP(3),
     "resolvedAt" TIMESTAMP(3),
-    "resolutionSummary" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "acknowledgedAt" TIMESTAMP(3),
 
     CONSTRAINT "Escalation_pkey" PRIMARY KEY ("id")
 );
@@ -223,9 +220,9 @@ CREATE TABLE "PlaybookStep" (
     "status" "PlaybookStepStatus" NOT NULL DEFAULT 'PENDING',
     "completedById" TEXT,
     "completedAt" TIMESTAMP(3),
-    "notes" TEXT,
+    "evidence" JSONB,
+    "startedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "PlaybookStep_pkey" PRIMARY KEY ("id")
 );
@@ -239,8 +236,6 @@ CREATE TABLE "Disposition" (
     "transferredToFacilityId" TEXT,
     "recordedById" TEXT NOT NULL,
     "recordedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Disposition_pkey" PRIMARY KEY ("id")
 );
@@ -256,6 +251,7 @@ CREATE TABLE "FollowUpTask" (
     "outcome" "FollowUpOutcome",
     "notes" TEXT,
     "escalated" BOOLEAN NOT NULL DEFAULT false,
+    "escalatedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -305,9 +301,12 @@ CREATE TABLE "AuditEvent" (
 CREATE TABLE "Configuration" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
-    "value" TEXT NOT NULL,
-    "description" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "value" JSONB NOT NULL,
+    "description" TEXT NOT NULL,
+    "descriptionKn" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "requiresClinicalApproval" BOOLEAN NOT NULL DEFAULT false,
+    "updatedById" TEXT,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Configuration_pkey" PRIMARY KEY ("id")
