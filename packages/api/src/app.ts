@@ -149,11 +149,15 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   // Health check endpoint (Liveness Probe + DB connectivity)
   app.get('/health', async (_req, reply) => {
     let dbStatus: 'connected' | 'disconnected' = 'disconnected';
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      dbStatus = 'connected';
-    } catch {
+    if (process.env.TEST_DEGRADED === 'true') {
       dbStatus = 'disconnected';
+    } else {
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+        dbStatus = 'connected';
+      } catch {
+        dbStatus = 'disconnected';
+      }
     }
 
     const isHealthy = dbStatus === 'connected' || (process.env.NODE_ENV === 'test' && process.env.TEST_DEGRADED !== 'true');
@@ -170,27 +174,33 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   // Readiness check endpoint (Readiness Probe: DB + Redis ping if configured)
   app.get('/ready', async (_req, reply) => {
     let dbStatus: 'connected' | 'error' = 'error';
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      dbStatus = 'connected';
-    } catch {
-      dbStatus = 'error';
-    }
-
     let redisStatus: 'connected' | 'not_configured' | 'error' = 'not_configured';
-    if (process.env.REDIS_URL) {
+
+    if (process.env.TEST_DEGRADED === 'true') {
+      dbStatus = 'error';
+      redisStatus = 'error';
+    } else {
       try {
-        const redisClient = new Redis(process.env.REDIS_URL, {
-          connectTimeout: 1000,
-          maxRetriesPerRequest: 1,
-          lazyConnect: true,
-        });
-        await redisClient.connect();
-        const pong = await redisClient.ping();
-        await redisClient.quit();
-        redisStatus = pong === 'PONG' ? 'connected' : 'error';
+        await prisma.$queryRaw`SELECT 1`;
+        dbStatus = 'connected';
       } catch {
-        redisStatus = 'error';
+        dbStatus = 'error';
+      }
+
+      if (process.env.REDIS_URL) {
+        try {
+          const redisClient = new Redis(process.env.REDIS_URL, {
+            connectTimeout: 1000,
+            maxRetriesPerRequest: 1,
+            lazyConnect: true,
+          });
+          await redisClient.connect();
+          const pong = await redisClient.ping();
+          await redisClient.quit();
+          redisStatus = pong === 'PONG' ? 'connected' : 'error';
+        } catch {
+          redisStatus = 'error';
+        }
       }
     }
 
